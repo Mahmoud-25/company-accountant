@@ -6,157 +6,150 @@
 <title>💰 لوحة المحاسبة</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Cairo', sans-serif;
-    background: var(--tg-theme-bg-color, #f8fafc);
-    color: var(--tg-theme-text-color, #1e293b);
-    padding: 12px 12px 80px; min-height: 100vh;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Cairo',sans-serif;
+    background:var(--tg-theme-bg-color,#f8fafc); color:var(--tg-theme-text-color,#1e293b);
+    padding:12px 12px 70px; min-height:100vh;
   }
-  body[dir="rtl"] { text-align: right; }
-  body[dir="ltr"] { text-align: left; }
-  .container { max-width: 720px; margin: 0 auto; }
+  body[dir="rtl"] { text-align:right; } body[dir="ltr"] { text-align:left; }
+  .container { max-width:720px; margin:0 auto; }
 
-  .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-  h1 { font-size: 21px; font-weight: 700; margin-bottom: 3px; }
-  .subtitle { font-size: 12px; color: var(--tg-theme-hint-color, #64748b); }
+  .header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  h1 { font-size:19px; font-weight:700; }
+  .who-am-i { font-size:11px; color:var(--tg-theme-hint-color,#64748b); }
   .lang-switch {
-    background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff);
-    border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
-  }
-  .user-info {
-    font-size: 11px; color: var(--tg-theme-hint-color, #64748b); margin-bottom: 14px;
-    padding: 5px 10px; background: var(--tg-theme-secondary-bg-color, #f1f5f9);
-    border-radius: 6px; display: inline-block;
+    background:var(--tg-theme-button-color,#3390ec); color:var(--tg-theme-button-text-color,#fff);
+    border:none; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;
   }
 
-  .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
-  .kpi-card {
-    background: var(--tg-theme-secondary-bg-color, #fff); padding: 12px; border-radius: 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.1); position: relative; overflow: hidden;
+  /* tabs */
+  .tabs { display:flex; gap:6px; margin-bottom:14px; }
+  .tab {
+    flex:1; text-align:center; padding:9px 6px; border-radius:9px; font-size:13px;
+    font-weight:600; cursor:pointer; border:1px solid transparent;
+    background:var(--tg-theme-secondary-bg-color,#fff); color:var(--tg-theme-hint-color,#64748b);
   }
-  .kpi-card::before { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; }
-  body[dir="rtl"] .kpi-card::before { right: auto; left: 0; }
-  .kpi-card.blue::before { background: #3b82f6; }
-  .kpi-card.green::before { background: #10b981; }
-  .kpi-card.red::before { background: #ef4444; }
-  .kpi-card.purple::before { background: #8b5cf6; }
-  .kpi-label {
-    font-size: 9px; font-weight: 600; text-transform: uppercase;
-    color: var(--tg-theme-hint-color, #64748b); margin-bottom: 4px;
+  .tab.on {
+    background:var(--tg-theme-button-color,#3390ec); color:var(--tg-theme-button-text-color,#fff);
   }
-  .kpi-value { font-size: 17px; font-weight: 700; }
-  .kpi-sub { font-size: 10px; color: var(--tg-theme-hint-color, #94a3b8); margin-top: 2px; }
-  .kpi-icon { position: absolute; top: 10px; right: 10px; font-size: 24px; opacity: .2; }
-  body[dir="rtl"] .kpi-icon { right: auto; left: 10px; }
-
-  .section-title {
-    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--tg-theme-hint-color, #94a3b8); margin: 22px 0 8px;
-  }
-  .settle {
-    background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff);
-    border-radius: 14px; padding: 15px 18px; margin-bottom: 8px;
-  }
-  .settle .who { font-size: 13px; opacity: .92; }
-  .settle .amt { font-size: 27px; font-weight: 750; margin-top: 2px; letter-spacing: -.02em; }
-  .settle.none {
-    background: var(--tg-theme-secondary-bg-color, #fff); color: var(--tg-theme-text-color, #1e293b);
-    box-shadow: 0 1px 3px rgba(0,0,0,.1);
-  }
-  .settle.none .amt { font-size: 18px; font-weight: 700; }
-  .settle.none .who { color: var(--tg-theme-hint-color, #64748b); }
 
   .card {
-    background: var(--tg-theme-secondary-bg-color, #fff); padding: 14px 16px;
-    border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 10px;
+    background:var(--tg-theme-secondary-bg-color,#fff); padding:14px 16px;
+    border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:10px;
   }
-  .stage-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
-  .stage-head .t { font-weight: 700; font-size: 15px; }
-  .stage-head .n { font-size: 13px; color: var(--tg-theme-hint-color, #64748b); }
+  .settle {
+    background:var(--tg-theme-button-color,#3390ec); color:var(--tg-theme-button-text-color,#fff);
+    border-radius:14px; padding:15px 18px; margin-bottom:10px;
+  }
+  .settle .who { font-size:13px; opacity:.92; }
+  .settle .amt { font-size:27px; font-weight:750; margin-top:2px; letter-spacing:-.02em; }
+  .settle.none { background:var(--tg-theme-secondary-bg-color,#fff); color:var(--tg-theme-text-color,#1e293b); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .settle.none .amt { font-size:18px; font-weight:700; }
+  .settle.none .who { color:var(--tg-theme-hint-color,#64748b); }
 
-  /* one person's column, exactly like the running note */
-  .sec { padding: 11px 0; }
-  .sec + .sec { border-top: 1px solid var(--tg-theme-bg-color, #eef2f7); }
-  .sec-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-  .sec-name { font-weight: 700; font-size: 15px; }
-  .sec-net { font-weight: 700; font-size: 15px; }
-  .sec-nums {
-    margin-top: 5px; font-size: 13px; word-spacing: .35em;
-    color: var(--tg-theme-hint-color, #64748b);
+  /* stage card */
+  .st-head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .st-name { font-weight:700; font-size:16px; }
+  .st-total { font-weight:700; font-size:16px; }
+  .st-meta { font-size:12px; color:var(--tg-theme-hint-color,#64748b); margin-top:5px; }
+  .track { height:6px; background:var(--tg-theme-bg-color,#eef2f7); border-radius:999px; margin-top:8px; overflow:hidden; }
+  .fill { height:100%; border-radius:999px; background:#3b82f6; }
+  .fill.ready { background:#10b981; }
+  .st-net {
+    margin-top:11px; padding-top:10px; border-top:1px solid var(--tg-theme-bg-color,#eef2f7);
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    font-size:14px; font-weight:600;
   }
-  .sec-mean { margin-top: 5px; font-size: 12.5px; }
+  .toggle {
+    background:none; border:none; cursor:pointer; font-size:12px; font-weight:600;
+    color:var(--tg-theme-link-color,#3390ec); padding:2px 4px;
+  }
+  .detail { display:none; margin-top:8px; }
+  .detail.on { display:block; }
+  .sec { padding:9px 0; }
+  .sec + .sec { border-top:1px solid var(--tg-theme-bg-color,#eef2f7); }
+  .sec-top { display:flex; justify-content:space-between; gap:10px; align-items:baseline; }
+  .sec-name { font-weight:700; font-size:14px; }
+  .sec-net { font-weight:700; font-size:14px; }
+  .sec-nums { margin-top:4px; font-size:12.5px; word-spacing:.35em; color:var(--tg-theme-hint-color,#64748b); }
+  .sec-mean { margin-top:4px; font-size:12px; }
   .badge {
-    display: inline-block; background: var(--tg-theme-bg-color, #eef2f7);
-    color: var(--tg-theme-hint-color, #64748b); border-radius: 999px;
-    padding: 1px 8px; font-size: 10px; margin: 0 5px; vertical-align: middle;
-  }
-  .stage-net {
-    margin-top: 12px; padding-top: 11px; font-weight: 700; font-size: 14px;
-    border-top: 2px solid var(--tg-theme-bg-color, #eef2f7);
-    display: flex; justify-content: space-between; gap: 10px;
+    display:inline-block; background:var(--tg-theme-bg-color,#eef2f7); color:var(--tg-theme-hint-color,#64748b);
+    border-radius:999px; padding:1px 8px; font-size:10px; margin:0 5px; vertical-align:middle;
   }
   .move {
-    margin-top: 12px; width: 100%; border: none; border-radius: 10px; padding: 11px;
-    font-size: 14px; font-weight: 600; cursor: pointer;
-    background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff);
+    margin-top:11px; width:100%; border:none; border-radius:10px; padding:11px;
+    font-size:14px; font-weight:600; cursor:pointer;
+    background:var(--tg-theme-button-color,#3390ec); color:var(--tg-theme-button-text-color,#fff);
   }
-  .move:disabled { opacity: .55; cursor: default; }
-  .move.done { background: #10b981; }
+  .move.ready { background:#10b981; }
+  .move:disabled { opacity:.55; cursor:default; }
 
-  table { width: 100%; border-collapse: collapse; }
-  th { font-size: 11px; font-weight: 600; padding: 4px 0; color: var(--tg-theme-hint-color, #64748b); }
-  td { padding: 7px 0; border-top: 1px solid var(--tg-theme-bg-color, #eef2f7); font-size: 14px; }
-  body[dir="rtl"] th, body[dir="rtl"] td { text-align: left; }
-  body[dir="rtl"] th:first-child, body[dir="rtl"] td:first-child { text-align: right; }
-  body[dir="ltr"] th, body[dir="ltr"] td { text-align: right; }
-  body[dir="ltr"] th:first-child, body[dir="ltr"] td:first-child { text-align: left; }
+  /* filters */
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .filters label { flex:1 1 120px; }
+  .flabel {
+    font-size:10px; font-weight:700; text-transform:uppercase;
+    color:var(--tg-theme-hint-color,#94a3b8); margin-bottom:3px; display:block;
+  }
+  select {
+    width:100%; background:var(--tg-theme-secondary-bg-color,#fff);
+    color:var(--tg-theme-text-color,#1e293b); border:1px solid var(--tg-theme-hint-color,#e2e8f0);
+    border-radius:8px; padding:9px 10px; font-size:14px; cursor:pointer;
+  }
+  .sumline {
+    display:flex; justify-content:space-between; gap:10px; font-weight:700;
+    font-size:15px; padding:12px 16px; border-radius:12px; margin-bottom:10px;
+    background:var(--tg-theme-secondary-bg-color,#fff); box-shadow:0 1px 3px rgba(0,0,0,.08);
+  }
 
-  .pos { color: #10b981; } .neg { color: #ef4444; }
-  .muted { color: var(--tg-theme-hint-color, #64748b); }
-  .hint { font-size: 12px; color: var(--tg-theme-hint-color, #64748b); margin-top: 2px; }
-
-  .txn { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; }
-  .txn + .txn { border-top: 1px solid var(--tg-theme-bg-color, #eef2f7); }
-  .txn-main { font-size: 14px; font-weight: 600; }
-  .txn-sub { font-size: 12px; color: var(--tg-theme-hint-color, #64748b); margin-top: 2px; }
+  /* rows */
+  .row { display:flex; justify-content:space-between; gap:10px; padding:10px 0; }
+  .row + .row { border-top:1px solid var(--tg-theme-bg-color,#eef2f7); }
+  .r-main { font-size:14px; font-weight:600; }
+  .r-sub { font-size:12px; color:var(--tg-theme-hint-color,#64748b); margin-top:2px; }
+  .r-right { text-align:center; }
   .chip {
-    font-size: 11px; padding: 2px 9px; border-radius: 999px; white-space: nowrap;
-    background: var(--tg-theme-bg-color, #eef2f7); color: var(--tg-theme-hint-color, #64748b);
-    align-self: flex-start;
+    font-size:11px; padding:2px 9px; border-radius:999px; white-space:nowrap; display:inline-block;
+    background:var(--tg-theme-bg-color,#eef2f7); color:var(--tg-theme-hint-color,#64748b);
   }
+  .chip.ready { background:#10b981; color:#fff; }
 
-  .state {
-    display: none; flex-direction: column; align-items: center; justify-content: center;
-    min-height: 240px; text-align: center; padding: 30px 20px; gap: 14px;
-  }
-  .state.on { display: flex; }
-  .spinner {
-    width: 44px; height: 44px; border-radius: 50%;
-    border: 4px solid var(--tg-theme-bg-color, #e2e8f0);
-    border-top-color: var(--tg-theme-button-color, #3390ec);
-    animation: spin .8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .state-icon { font-size: 44px; opacity: .5; }
-  .state-text { font-size: 15px; font-weight: 600; }
-  .state-hint { font-size: 13px; color: var(--tg-theme-hint-color, #64748b); }
+  table { width:100%; border-collapse:collapse; }
+  th { font-size:11px; font-weight:600; padding:4px 0; color:var(--tg-theme-hint-color,#64748b); }
+  td { padding:7px 0; border-top:1px solid var(--tg-theme-bg-color,#eef2f7); font-size:14px; }
+  body[dir="rtl"] th, body[dir="rtl"] td { text-align:left; }
+  body[dir="rtl"] th:first-child, body[dir="rtl"] td:first-child { text-align:right; }
+  body[dir="ltr"] th, body[dir="ltr"] td { text-align:right; }
+  body[dir="ltr"] th:first-child, body[dir="ltr"] td:first-child { text-align:left; }
 
-  .foot { margin-top: 26px; text-align: center; }
-  .refresh {
-    background: var(--tg-theme-secondary-bg-color, #fff); color: var(--tg-theme-text-color, #1e293b);
-    border: 1px solid var(--tg-theme-hint-color, #e2e8f0); border-radius: 9px;
-    padding: 8px 16px; font-size: 14px; cursor: pointer;
+  .pos { color:#10b981; } .neg { color:#ef4444; }
+  .muted { color:var(--tg-theme-hint-color,#64748b); }
+  .title-sm {
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--tg-theme-hint-color,#94a3b8); margin:20px 0 8px;
   }
-  .stamp { font-size: 11px; color: var(--tg-theme-hint-color, #94a3b8); margin-top: 8px; }
-  .num { direction: ltr; unicode-bidi: embed; display: inline-block; }
-  .toast {
-    position: fixed; left: 50%; transform: translateX(-50%); bottom: 22px;
-    background: #10b981; color: #fff; padding: 10px 18px; border-radius: 10px;
-    font-size: 14px; font-weight: 600; box-shadow: 0 4px 14px rgba(0,0,0,.2);
-    opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 99;
-  }
-  .toast.on { opacity: 1; }
+  .state { display:none; flex-direction:column; align-items:center; justify-content:center;
+    min-height:220px; text-align:center; padding:30px 20px; gap:14px; }
+  .state.on { display:flex; }
+  .spinner { width:42px; height:42px; border-radius:50%;
+    border:4px solid var(--tg-theme-bg-color,#e2e8f0);
+    border-top-color:var(--tg-theme-button-color,#3390ec); animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .state-icon { font-size:42px; opacity:.5; }
+  .state-text { font-size:15px; font-weight:600; }
+  .state-hint { font-size:13px; color:var(--tg-theme-hint-color,#64748b); }
+  .foot { margin-top:22px; text-align:center; }
+  .refresh { background:var(--tg-theme-secondary-bg-color,#fff); color:var(--tg-theme-text-color,#1e293b);
+    border:1px solid var(--tg-theme-hint-color,#e2e8f0); border-radius:9px; padding:8px 16px;
+    font-size:14px; cursor:pointer; }
+  .stamp { font-size:11px; color:var(--tg-theme-hint-color,#94a3b8); margin-top:8px; }
+  .num { direction:ltr; unicode-bidi:embed; display:inline-block; }
+  .toast { position:fixed; left:50%; transform:translateX(-50%); bottom:20px; background:#10b981;
+    color:#fff; padding:10px 18px; border-radius:10px; font-size:14px; font-weight:600;
+    box-shadow:0 4px 14px rgba(0,0,0,.2); opacity:0; pointer-events:none; transition:opacity .25s; z-index:99; }
+  .toast.on { opacity:1; }
 </style>
 </head>
 <body dir="rtl">
@@ -164,24 +157,22 @@
   <div class="header-top">
     <div>
       <h1 id="title">💰 لوحة المحاسبة</h1>
-      <div class="subtitle" id="subtitle"></div>
+      <div class="who-am-i" id="whoAmI"></div>
     </div>
     <button class="lang-switch" id="langBtn">EN</button>
   </div>
-  <div class="user-info" id="userInfo" style="display:none"></div>
+
+  <div class="tabs" id="tabs" style="display:none">
+    <div class="tab on" data-tab="home" id="tab-home"></div>
+    <div class="tab" data-tab="income" id="tab-income"></div>
+    <div class="tab" data-tab="expense" id="tab-expense"></div>
+  </div>
 
   <div class="state on" id="loading">
-    <div class="spinner"></div>
-    <div class="state-hint" id="loadingText">جاري التحميل…</div>
+    <div class="spinner"></div><div class="state-hint" id="loadingText">جاري التحميل…</div>
   </div>
   <div class="state" id="error">
-    <div class="state-icon">⚠️</div>
-    <div class="state-text" id="errorText"></div>
-  </div>
-  <div class="state" id="empty">
-    <div class="state-icon">📭</div>
-    <div class="state-text" id="emptyText"></div>
-    <div class="state-hint" id="emptyHint"></div>
+    <div class="state-icon">⚠️</div><div class="state-text" id="errorText"></div>
   </div>
 
   <div id="content" style="display:none"></div>
@@ -191,416 +182,420 @@
 <script>
 (function () {
   "use strict";
-
   var BASE = "https://qrxiqqkzmtumcwjfqujq.supabase.co/functions/v1/dashboard";
 
   var STR = {
     ar: {
-      title: "💰 لوحة المحاسبة",
-      loading: "جاري التحميل…",
-      emptyText: "لا توجد بيانات بعد",
-      emptyHint: "سجّل أول عملية في مجموعة تيليجرام.",
-      openFromGroup: "افتح اللوحة من أمر /dashboard في المجموعة.",
-      income: "الدخل هذا الشهر", expenses: "المصروفات هذا الشهر",
-      owedNow: "مستحق الآن", onTheWay: "في الطريق",
-      whoPays: "من يدفع لمن", pays: "يدفع لـ",
-      allSquare: "لا توجد مستحقات", allSquareHint: "الحسابات متساوية.",
-      stages: "مراحل الأموال",
-      st_pending: "⏳ قيد الانتظار", st_stripe: "💳 Stripe",
-      st_bank: "🏦 البنك", st_paid: "🤝 تم التقسيم",
-      owes: "مدين لـ",
-      ownWork: function (a) { return "عمل " + a + " على حسابه — لا مستحقات"; },
-      halfGoes: function (h, a, b) { return "النصف (" + h + ") → " + a + " " + "مدين لـ" + " " + b; },
-      net: "الصافي",
-      settledHere: "لا مستحقات في هذه المرحلة",
-      shared: "مشترك",
-      moveTo: function (s) { return "➡️ نقل الكل إلى " + s; },
-      confirmMove: function (n, s) { return "نقل " + n + " عملية إلى " + s + "؟"; },
-      moved: function (n) { return "تم نقل " + n + " عملية"; },
-      nothingMoved: "لا يوجد ما يُنقل",
-      bankOnly: "المحسوب في المستحقات هو مرحلة البنك فقط.",
-      signNote: function (a) {
-        return "الأرقام من منظور " + a + ": سالب = مستحق لـ " + a + " · موجب = مستحق على " + a;
-      },
-      expensesTitle: "المصروفات — من دفع",
-      thName: "الشريك", thPaid: "دفع", thShare: "حصته", thBack: "له/عليه",
-      month: "ملخص الشهر", thEarned: "المكتسب", thCosts: "التكاليف", thNet: "الصافي",
-      recent: "آخر العمليات",
-      refresh: "تحديث", updated: "آخر تحديث",
-      kind: { income: "دخل", expense: "مصروف", payout: "أجر موظف", transfer: "تحويل" },
-      inAccount: function (w, a) { return w + " — حساب " + a; },
-      errGeneric: "تعذّر تحميل اللوحة.", errNet: "تعذّر الوصول للخادم."
+      title:"💰 لوحة المحاسبة", loading:"جاري التحميل…",
+      openFromGroup:"افتح اللوحة من أمر /dashboard في المجموعة.",
+      tabHome:"اللوحة", tabIncome:"الدخل", tabExpense:"المصروفات",
+      pays:"يدفع لـ", allSquare:"لا توجد مستحقات", allSquareHint:"الحسابات متساوية.",
+      st_pending:"⏳ قيد الانتظار", st_stripe:"💳 Stripe", st_bank:"🏦 البنك", st_paid:"🤝 تم التقسيم",
+      entries:"عملية",
+      waitingDays:function(d,n){ return "أقدم عملية: "+d+" من "+n+" أيام"; },
+      dueOn:function(d){ return "متوقع "+d; },
+      readyNow:function(n){ return n+" جاهزة للنقل"; },
+      arrived:"وصلت — محسوبة في المستحقات",
+      net:"الصافي", owes:"مدين لـ", settledHere:"لا مستحقات هنا",
+      ownWork:function(a){ return "عمل "+a+" على حسابه"; },
+      halfGoes:function(h,a,b){ return "النصف ("+h+") → "+a+" مدين لـ "+b; },
+      shared:"مشترك", details:"تفاصيل", hide:"إخفاء",
+      moveTo:function(s){ return "➡️ نقل الكل إلى "+s; },
+      confirmMove:function(n,s){ return "نقل "+n+" عملية إلى "+s+"؟"; },
+      moved:function(n){ return "تم نقل "+n+" عملية"; }, nothingMoved:"لا يوجد ما يُنقل",
+      signNote:function(a){ return "سالب = مستحق لـ "+a+" · موجب = مستحق على "+a; },
+      fPerson:"الشخص", fStage:"المرحلة", fMonth:"الشهر", fCurrency:"العملة",
+      fPaidBy:"دفع بواسطة", fCategory:"الفئة", all:"الكل",
+      total:"الإجمالي", count:"عدد العمليات",
+      noRows:"لا توجد عمليات مطابقة",
+      onAccount:function(w,a){ return w+" على حساب "+a; },
+      ownAccount:function(w){ return w+" على حسابه"; },
+      days:"يوم", refresh:"تحديث", updated:"آخر تحديث",
+      payout:"أجر موظف", expense:"مصروف",
+      splitEqual:"مناصفة", splitNone:"غير مشترك", splitTo:"على حساب",
+      whoPaid:"من دفع", thName:"الشريك", thPaid:"دفع", thShare:"حصته", thBack:"له/عليه",
+      errGeneric:"تعذّر تحميل اللوحة.", errNet:"تعذّر الوصول للخادم."
     },
     en: {
-      title: "💰 Accounting dashboard",
-      loading: "Loading…",
-      emptyText: "Nothing recorded yet",
-      emptyHint: "Add your first entry in the Telegram group.",
-      openFromGroup: "Open this with /dashboard in the group.",
-      income: "Income this month", expenses: "Expenses this month",
-      owedNow: "Owed now", onTheWay: "On the way",
-      whoPays: "Who pays whom", pays: "pays",
-      allSquare: "All square", allSquareHint: "Nothing is owed.",
-      stages: "Money by stage",
-      st_pending: "⏳ Pending", st_stripe: "💳 Stripe",
-      st_bank: "🏦 Bank", st_paid: "🤝 Shared out",
-      owes: "owes",
-      ownWork: function (a) { return a + "'s own work — no debt"; },
-      halfGoes: function (h, a, b) { return "half (" + h + ") → " + a + " owes " + b; },
-      net: "Net",
-      settledHere: "nothing owed at this stage",
-      shared: "shared",
-      moveTo: function (s) { return "➡️ Move all to " + s; },
-      confirmMove: function (n, s) { return "Move " + n + " entries to " + s + "?"; },
-      moved: function (n) { return "Moved " + n + " entries"; },
-      nothingMoved: "Nothing to move",
-      bankOnly: "Only the bank stage counts as owed.",
-      signNote: function (a) {
-        return "Signs are from " + a + "'s side: negative = owed to " + a + " · positive = owed by " + a;
-      },
-      expensesTitle: "Expenses — who paid",
-      thName: "Partner", thPaid: "Paid", thShare: "Share", thBack: "Owed back",
-      month: "Month summary", thEarned: "Earned", thCosts: "Costs", thNet: "Net",
-      recent: "Recent entries",
-      refresh: "Refresh", updated: "Updated",
-      kind: { income: "Income", expense: "Expense", payout: "Payout", transfer: "Transfer" },
-      inAccount: function (w, a) { return w + " — " + a + "'s account"; },
-      errGeneric: "Could not load the dashboard.", errNet: "Could not reach the server."
+      title:"💰 Accounting dashboard", loading:"Loading…",
+      openFromGroup:"Open this with /dashboard in the group.",
+      tabHome:"Dashboard", tabIncome:"Income", tabExpense:"Expenses",
+      pays:"pays", allSquare:"All square", allSquareHint:"Nothing is owed.",
+      st_pending:"⏳ Pending", st_stripe:"💳 Stripe", st_bank:"🏦 Bank", st_paid:"🤝 Shared out",
+      entries:"entries",
+      waitingDays:function(d,n){ return "oldest waiting "+d+" of "+n+" days"; },
+      dueOn:function(d){ return "due "+d; },
+      readyNow:function(n){ return n+" ready to move"; },
+      arrived:"arrived — counts as owed",
+      net:"Net", owes:"owes", settledHere:"nothing owed here",
+      ownWork:function(a){ return a+"'s own account"; },
+      halfGoes:function(h,a,b){ return "half ("+h+") → "+a+" owes "+b; },
+      shared:"shared", details:"details", hide:"hide",
+      moveTo:function(s){ return "➡️ Move all to "+s; },
+      confirmMove:function(n,s){ return "Move "+n+" entries to "+s+"?"; },
+      moved:function(n){ return "Moved "+n+" entries"; }, nothingMoved:"Nothing to move",
+      signNote:function(a){ return "negative = owed to "+a+" · positive = owed by "+a; },
+      fPerson:"Person", fStage:"Stage", fMonth:"Month", fCurrency:"Currency",
+      fPaidBy:"Paid by", fCategory:"Category", all:"All",
+      total:"Total", count:"Entries",
+      noRows:"No matching entries",
+      onAccount:function(w,a){ return w+" on "+a+"'s account"; },
+      ownAccount:function(w){ return w+"'s own account"; },
+      days:"days", refresh:"Refresh", updated:"Updated",
+      payout:"Payout", expense:"Expense",
+      splitEqual:"50/50", splitNone:"not shared", splitTo:"charged to",
+      whoPaid:"Who paid", thName:"Partner", thPaid:"Paid", thShare:"Share", thBack:"Owed back",
+      errGeneric:"Could not load the dashboard.", errNet:"Could not reach the server."
     }
   };
 
-  var lang = "ar", T = STR.ar, payload = null, busy = false;
-  var tg = window.Telegram && window.Telegram.WebApp;
-  if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+  var lang="ar", T=STR.ar, D=null, tab="home", busy=false;
+  var F = { person:"", stage:"", month:"", currency:"", paidBy:"", category:"" };
+  var open = {};
 
-  function $(id) { return document.getElementById(id); }
-  function el(tag, cls, text) {
-    var n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text !== undefined && text !== null) n.textContent = String(text);
-    return n;
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) { try { tg.ready(); tg.expand(); } catch(e){} }
+
+  function $(id){ return document.getElementById(id); }
+  function el(t,c,x){ var n=document.createElement(t); if(c)n.className=c;
+    if(x!==undefined&&x!==null)n.textContent=String(x); return n; }
+  function nm(x,c){ return el("span","num"+(c?" "+c:""),x); }
+  function abs(n,cur){
+    var v=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+    return cur==="USD"?"$"+v:v+" EGP";
   }
-  function numSpan(text, cls) { return el("span", "num" + (cls ? " " + cls : ""), text); }
-  function abs(n, cur) {
-    var v = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return cur === "USD" ? "$" + v : v + " EGP";
+  function money(n,cur){ return (n<0?"-":"")+abs(n,cur); }
+  function signed(n,cur){ return (n<0?"-":"+")+abs(n,cur); }
+  function sPlain(n){ return (n<0?"-":"+")+Math.abs(n).toLocaleString("en-US",{maximumFractionDigits:2}); }
+  function pair(p){
+    var o=[];
+    if(Math.abs(p.USD)>0.005)o.push(money(p.USD,"USD"));
+    if(Math.abs(p.EGP)>0.005)o.push(money(p.EGP,"EGP"));
+    return o.length?o.join(" · "):abs(0,"USD");
   }
-  function money(n, cur) { return (n < 0 ? "-" : "") + abs(n, cur); }
-  function signed(n, cur) { return (n < 0 ? "-" : "+") + abs(n, cur); }
-  function signedPlain(n) {
-    return (n < 0 ? "-" : "+") + Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  function dt(iso){
+    var d=new Date(iso+"T12:00:00Z"); if(isNaN(d.getTime()))return iso;
+    return d.toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"UTC"});
   }
-  function pair(p) {
-    var o = [];
-    if (Math.abs(p.USD) > 0.005) o.push(money(p.USD, "USD"));
-    if (Math.abs(p.EGP) > 0.005) o.push(money(p.EGP, "EGP"));
-    return o.length ? o.join(" · ") : abs(0, "USD");
+  function monthOf(iso){ return iso.slice(0,7); }
+  function showOnly(id){
+    ["loading","error"].forEach(function(s){ $(s).classList.toggle("on", s===id); });
+    $("content").style.display = id==="content"?"block":"none";
+    $("tabs").style.display = id==="content"?"flex":"none";
   }
-  function niceDate(iso) {
-    var d = new Date(iso + "T12:00:00Z");
-    if (isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-  }
-  function showOnly(id) {
-    ["loading", "error", "empty"].forEach(function (s) { $(s).classList.toggle("on", s === id); });
-    $("content").style.display = id === "content" ? "block" : "none";
-  }
-  function toast(msg) {
-    var t = $("toast");
-    t.textContent = msg; t.classList.add("on");
-    setTimeout(function () { t.classList.remove("on"); }, 2200);
-  }
-  function headers() {
-    var h = {};
-    if (tg && tg.initData) h["X-Telegram-Init-Data"] = tg.initData;
-    var t = new URLSearchParams(location.search).get("t");
-    if (t) h["X-Dashboard-Token"] = t;
+  function toast(m){ var t=$("toast"); t.textContent=m; t.classList.add("on");
+    setTimeout(function(){t.classList.remove("on");},2200); }
+  function headers(){
+    var h={};
+    if(tg&&tg.initData)h["X-Telegram-Init-Data"]=tg.initData;
+    var t=new URLSearchParams(location.search).get("t");
+    if(t)h["X-Dashboard-Token"]=t;
     return h;
   }
-
-  // -------------------------------------------------------------- render
-  function render() {
-    var d = payload;
-    if (!d) return;
-
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-    document.body.dir = lang === "ar" ? "rtl" : "ltr";
-    $("title").textContent = T.title;
-    $("langBtn").textContent = lang === "ar" ? "EN" : "ع";
-    $("subtitle").textContent = d.month.title;
-    $("userInfo").textContent = d.me.name;
-    $("userInfo").style.display = "inline-block";
-
-    var c = $("content");
-    c.textContent = "";
-
-    if (!d.stages.length && !d.recent.length && !d.settlePlan.length) {
-      $("emptyText").textContent = T.emptyText;
-      $("emptyHint").textContent = T.emptyHint;
-      showOnly("empty");
-      return;
-    }
-    showOnly("content");
-
-    // ---- KPI cards
-    var expTotal = {
-      USD: d.month.totals.expense.USD + d.month.totals.payout.USD,
-      EGP: d.month.totals.expense.EGP + d.month.totals.payout.EGP
-    };
-    var inflight = { USD: 0, EGP: 0 };
-    d.stages.forEach(function (s) {
-      if (s.status === "bank") return;
-      inflight.USD += s.totals.USD; inflight.EGP += s.totals.EGP;
+  function sel(labelText,value,options,onChange){
+    var wrap=el("label");
+    wrap.appendChild(el("span","flabel",labelText));
+    var s=el("select");
+    options.forEach(function(o){
+      var op=el("option",null,o[1]); op.value=o[0];
+      if(o[0]===value)op.selected=true; s.appendChild(op);
     });
-    var owedNow = d.settlePlan.length
-      ? d.settlePlan.map(function (s) { return money(s.amount, s.currency); }).join(" · ")
-      : T.allSquare;
-    var owedSub = d.settlePlan.length
-      ? d.settlePlan.map(function (s) { return s.from + " → " + s.to; }).join(" · ")
-      : "";
+    s.onchange=function(){ onChange(s.value); };
+    wrap.appendChild(s);
+    return wrap;
+  }
 
-    var grid = el("div", "kpi-grid");
-    [["blue", "💵", T.income, pair(d.month.totals.income), ""],
-     ["red", "🧾", T.expenses, pair(expTotal), ""],
-     ["green", "⚖️", T.owedNow, owedNow, owedSub],
-     ["purple", "📦", T.onTheWay, pair(inflight), ""]
-    ].forEach(function (k) {
-      var card = el("div", "kpi-card " + k[0]);
-      card.appendChild(el("div", "kpi-icon", k[1]));
-      card.appendChild(el("div", "kpi-label", k[2]));
-      var v = el("div", "kpi-value"); v.appendChild(numSpan(k[3])); card.appendChild(v);
-      if (k[4]) card.appendChild(el("div", "kpi-sub", k[4]));
-      grid.appendChild(card);
-    });
-    c.appendChild(grid);
-
-    // ---- who pays whom
-    c.appendChild(el("div", "section-title", T.whoPays));
-    if (d.settlePlan.length) {
-      d.settlePlan.forEach(function (s) {
-        var b = el("div", "settle");
-        b.appendChild(el("div", "who", s.from + " " + T.pays + " " + s.to));
-        var a = el("div", "amt"); a.appendChild(numSpan(abs(s.amount, s.currency)));
-        b.appendChild(a);
+  // =================================================================== home
+  function renderHome(c) {
+    if (D.settlePlan.length) {
+      D.settlePlan.forEach(function(s){
+        var b=el("div","settle");
+        b.appendChild(el("div","who", s.from+" "+T.pays+" "+s.to));
+        var a=el("div","amt"); a.appendChild(nm(abs(s.amount,s.currency))); b.appendChild(a);
         c.appendChild(b);
       });
     } else {
-      var none = el("div", "settle none");
-      none.appendChild(el("div", "amt", T.allSquare));
-      none.appendChild(el("div", "who", T.allSquareHint));
-      c.appendChild(none);
+      var n=el("div","settle none");
+      n.appendChild(el("div","amt",T.allSquare));
+      n.appendChild(el("div","who",T.allSquareHint));
+      c.appendChild(n);
     }
 
-    // ---- the stages, in the shape of the running note
-    if (d.stages.length) {
-      c.appendChild(el("div", "section-title", T.stages));
-      c.appendChild(el("div", "hint", T.signNote(d.anchor)));
+    D.stages.forEach(function(st){
+      var card=el("div","card");
 
-      d.stages.forEach(function (st) {
-        var card = el("div", "card");
-        var head = el("div", "stage-head");
-        head.appendChild(el("span", "t", T["st_" + st.status]));
-        head.appendChild(numSpan(pair(st.totals), "n"));
-        card.appendChild(head);
+      var head=el("div","st-head");
+      head.appendChild(el("span","st-name",T["st_"+st.status]));
+      head.appendChild(nm(pair(st.totals),"st-total"));
+      card.appendChild(head);
 
-        st.sections.forEach(function (s) {
-          var box = el("div", "sec");
+      // how long it has been waiting, and when it is due
+      var meta=[st.count+" "+T.entries];
+      if (st.status==="bank") {
+        meta.push(T.arrived);
+      } else if (st.oldestDays!==null) {
+        meta.push(T.waitingDays(st.oldestDays, D.stageDays));
+        if (st.readyCount) meta.push(T.readyNow(st.readyCount));
+        else if (st.nextDue) meta.push(T.dueOn(dt(st.nextDue)));
+      }
+      card.appendChild(el("div","st-meta",meta.join(" · ")));
 
-          var top = el("div", "sec-top");
-          var nm = el("span", "sec-name", s.person);
-          if (s.kind === "employee") nm.appendChild(el("span", "badge", T.shared));
-          top.appendChild(nm);
-          top.appendChild(numSpan(signed(s.net, s.currency),
-            "sec-net " + (s.net < 0 ? "pos" : "neg")));
-          box.appendChild(top);
+      if (st.status!=="bank" && st.oldestDays!==null) {
+        var track=el("div","track");
+        var f=el("div","fill"+(st.readyCount?" ready":""));
+        f.style.width=Math.min(100,(st.oldestDays/D.stageDays)*100)+"%";
+        track.appendChild(f); card.appendChild(track);
+      }
 
-          box.appendChild(numSpan(
-            s.entries.map(function (e) { return signedPlain(e.signed || e.amount); }).join("   "),
-            "sec-nums"));
+      // the net, in words, plus a details toggle
+      var netRow=el("div","st-net");
+      if (Math.abs(st.netBetween)<0.005) netRow.appendChild(el("span","muted",T.settledHere));
+      else {
+        var dr=st.netBetween>0?D.anchor:D.other, cr=st.netBetween>0?D.other:D.anchor;
+        netRow.appendChild(el("span",null, dr+" "+T.owes+" "+cr+"  "+abs(st.netBetween,"USD")));
+      }
+      var tgl=el("button","toggle", open[st.status]?T.hide:T.details);
+      netRow.appendChild(tgl);
+      card.appendChild(netRow);
 
-          var mean;
-          if (s.kind === "own") mean = T.ownWork(s.person);
-          else if (s.kind === "employee" && s.debtor) {
-            mean = T.halfGoes(abs(s.debtAmount, s.currency), s.debtor, s.creditor);
-          } else if (s.debtor) {
-            mean = s.debtor + " " + T.owes + " " + s.creditor + "  " + abs(s.debtAmount, s.currency);
-          } else mean = T.settledHere;
-          box.appendChild(el("div", "sec-mean", mean));
-
-          card.appendChild(box);
-        });
-
-        // stage net, in words
-        var netRow = el("div", "stage-net");
-        netRow.appendChild(el("span", null, T.net));
-        if (Math.abs(st.netBetween) < 0.005) {
-          netRow.appendChild(el("span", "muted", T.settledHere));
-        } else {
-          var dr = st.netBetween > 0 ? d.anchor : d.other;
-          var cr = st.netBetween > 0 ? d.other : d.anchor;
-          netRow.appendChild(el("span", null,
-            dr + " " + T.owes + " " + cr + "  " + abs(st.netBetween, "USD")));
-        }
-        card.appendChild(netRow);
-
-        // the batch move button
-        if (st.status !== "paid") {
-          var nextLabel = st.status === "pending" ? T.st_stripe
-            : st.status === "stripe" ? T.st_bank : T.st_paid;
-          var btn = el("button", "move" + (st.status === "bank" ? " done" : ""),
-            T.moveTo(nextLabel));
-          btn.onclick = function () { moveStage(st.status, nextLabel, st.count, btn); };
-          card.appendChild(btn);
-        }
-
-        c.appendChild(card);
+      var detail=el("div","detail"+(open[st.status]?" on":""));
+      detail.appendChild(el("div","st-meta",T.signNote(D.anchor)));
+      st.sections.forEach(function(s){
+        var box=el("div","sec");
+        var top=el("div","sec-top");
+        var name=el("span","sec-name",s.person);
+        if(s.kind==="employee")name.appendChild(el("span","badge",T.shared));
+        top.appendChild(name);
+        top.appendChild(nm(signed(s.net,s.currency),"sec-net "+(s.net<0?"pos":"neg")));
+        box.appendChild(top);
+        box.appendChild(nm(s.entries.map(function(e){return sPlain(e.signed||e.amount);}).join("   "),"sec-nums"));
+        var mean;
+        if(s.kind==="own") mean=T.ownWork(s.person);
+        else if(s.kind==="employee"&&s.debtor) mean=T.halfGoes(abs(s.debtAmount,s.currency),s.debtor,s.creditor);
+        else if(s.debtor) mean=s.debtor+" "+T.owes+" "+s.creditor+"  "+abs(s.debtAmount,s.currency);
+        else mean=T.settledHere;
+        box.appendChild(el("div","sec-mean",mean));
+        detail.appendChild(box);
       });
-      c.appendChild(el("div", "hint", T.bankOnly));
-    }
+      card.appendChild(detail);
+      tgl.onclick=function(){
+        open[st.status]=!open[st.status];
+        detail.classList.toggle("on",open[st.status]);
+        tgl.textContent=open[st.status]?T.hide:T.details;
+      };
 
-    // ---- expenses: who paid what
-    if (d.expenses.length) {
-      c.appendChild(el("div", "section-title", T.expensesTitle));
-      ["EGP", "USD"].forEach(function (cur) {
-        var rows = d.expenses.filter(function (p) {
-          return Math.abs(p.paid[cur]) > 0.005 || Math.abs(p.share[cur]) > 0.005;
-        });
-        if (!rows.length) return;
-        var card = el("div", "card");
-        card.appendChild(el("div", "kpi-label", cur));
-        var t = el("table"), h = el("tr");
-        [T.thName, T.thPaid, T.thShare, T.thBack].forEach(function (x) { h.appendChild(el("th", null, x)); });
-        t.appendChild(h);
-        rows.forEach(function (p) {
-          var tr = el("tr");
-          tr.appendChild(el("td", null, p.name));
-          var a = el("td"); a.appendChild(numSpan(abs(p.paid[cur], cur))); tr.appendChild(a);
-          var b = el("td", "muted"); b.appendChild(numSpan(abs(p.share[cur], cur))); tr.appendChild(b);
-          var n = el("td");
-          n.appendChild(numSpan(signed(p.net[cur], cur), p.net[cur] >= 0 ? "pos" : "neg"));
-          tr.appendChild(n);
-          t.appendChild(tr);
-        });
-        card.appendChild(t);
-        c.appendChild(card);
-      });
-    }
+      if (st.status!=="paid") {
+        var nextLabel = st.status==="pending"?T.st_stripe : st.status==="stripe"?T.st_bank : T.st_paid;
+        var btn=el("button","move"+(st.readyCount||st.status==="bank"?" ready":""),T.moveTo(nextLabel));
+        btn.onclick=function(){ move(st.status,nextLabel,st.count,btn); };
+        card.appendChild(btn);
+      }
+      c.appendChild(card);
+    });
+  }
 
-    // ---- month summary
-    if (d.month.perPerson.length) {
-      c.appendChild(el("div", "section-title", T.month));
-      ["USD", "EGP"].forEach(function (cur) {
-        var rows = d.month.perPerson.filter(function (p) {
-          return Math.abs(p.income[cur]) > 0.005 || Math.abs(p.costs[cur]) > 0.005;
-        });
-        if (!rows.length) return;
-        var card = el("div", "card");
-        card.appendChild(el("div", "kpi-label", cur));
-        var t = el("table"), h = el("tr");
-        [T.thName, T.thEarned, T.thCosts, T.thNet].forEach(function (x) { h.appendChild(el("th", null, x)); });
-        t.appendChild(h);
-        rows.forEach(function (p) {
-          var tr = el("tr");
-          tr.appendChild(el("td", null, p.name));
-          var a = el("td"); a.appendChild(numSpan(abs(p.income[cur], cur))); tr.appendChild(a);
-          var b = el("td", "muted"); b.appendChild(numSpan("-" + abs(p.costs[cur], cur))); tr.appendChild(b);
-          var n = el("td");
-          n.appendChild(numSpan(money(p.net[cur], cur), p.net[cur] >= 0 ? "pos" : "neg"));
-          tr.appendChild(n);
-          t.appendChild(tr);
-        });
-        card.appendChild(t);
-        c.appendChild(card);
-      });
-    }
+  // ================================================================ income
+  function renderIncome(c) {
+    var months = [...new Set(D.incomes.map(function(r){return monthOf(r.date);}))].sort().reverse();
+    var f=el("div","filters");
+    f.appendChild(sel(T.fPerson, F.person,
+      [["",T.all]].concat(D.people.map(function(p){return [p,p];})),
+      function(v){ F.person=v; draw(); }));
+    f.appendChild(sel(T.fStage, F.stage,
+      [["",T.all],["pending",T.st_pending],["stripe",T.st_stripe],["bank",T.st_bank],["paid",T.st_paid]],
+      function(v){ F.stage=v; draw(); }));
+    f.appendChild(sel(T.fMonth, F.month,
+      [["",T.all]].concat(months.map(function(m){return [m,m];})),
+      function(v){ F.month=v; draw(); }));
+    c.appendChild(f);
 
-    // ---- log
-    if (d.recent.length) {
-      c.appendChild(el("div", "section-title", T.recent));
-      var log = el("div", "card");
-      d.recent.forEach(function (r) {
-        var row = el("div", "txn"), left = el("div");
-        var main = el("div", "txn-main");
-        main.appendChild(document.createTextNode(T.kind[r.type] + " · "));
-        main.appendChild(numSpan(abs(r.amount, r.currency)));
-        left.appendChild(main);
-        var who;
-        if (r.type === "income") {
-          who = r.earned_by_name === r.received_by_name
-            ? r.received_by_name : T.inAccount(r.earned_by_name, r.received_by_name);
-        } else if (r.type === "transfer") {
-          who = r.from_person_name + " → " + r.to_person_name;
-        } else {
-          who = r.paid_by_name + (r.beneficiary_name ? " → " + r.beneficiary_name : "");
-        }
-        var note = [r.description, r.client].filter(Boolean).join(" — ");
-        left.appendChild(el("div", "txn-sub",
-          who + " · " + niceDate(r.occurred_on) + (note ? " · " + note : "")));
+    var rows = D.incomes.filter(function(r){
+      if(F.person && r.earner!==F.person && r.account!==F.person) return false;
+      if(F.stage && r.status!==F.stage) return false;
+      if(F.month && monthOf(r.date)!==F.month) return false;
+      return true;
+    });
+
+    var tot={USD:0,EGP:0};
+    rows.forEach(function(r){ tot[r.currency]+=r.amount; });
+    var sum=el("div","sumline");
+    sum.appendChild(el("span",null,T.total+" · "+rows.length+" "+T.entries));
+    sum.appendChild(nm(pair(tot)));
+    c.appendChild(sum);
+
+    if(!rows.length){ c.appendChild(el("div","card muted",T.noRows)); return; }
+
+    var card=el("div","card");
+    rows.forEach(function(r){
+      var row=el("div","row"), left=el("div");
+      left.appendChild(nm(abs(r.amount,r.currency),"r-main"));
+      var who = r.earner===r.account ? T.ownAccount(r.earner) : T.onAccount(r.earner,r.account);
+      var bits=[who, dt(r.date)];
+      if(r.description)bits.push(r.description);
+      left.appendChild(el("div","r-sub",bits.join(" · ")));
+      row.appendChild(left);
+
+      var right=el("div","r-right");
+      var ready = r.daysInStage!==null && r.daysInStage>=D.stageDays;
+      right.appendChild(el("span","chip"+(ready?" ready":""),T["st_"+r.status]));
+      if(r.daysInStage!==null){
+        right.appendChild(el("div","r-sub", r.daysInStage+" "+T.days));
+      }
+      row.appendChild(right);
+      card.appendChild(row);
+    });
+    c.appendChild(card);
+  }
+
+  // =============================================================== expenses
+  function renderExpense(c) {
+    var months = [...new Set(D.expenses.map(function(r){return monthOf(r.date);}))].sort().reverse();
+    var payers = [...new Set(D.expenses.map(function(r){return r.paidBy;}))].sort();
+    var f=el("div","filters");
+    f.appendChild(sel(T.fPaidBy, F.paidBy,
+      [["",T.all]].concat(payers.map(function(p){return [p,p];})),
+      function(v){ F.paidBy=v; draw(); }));
+    f.appendChild(sel(T.fCategory, F.category,
+      [["",T.all]].concat(D.categories.map(function(x){return [x,x];})),
+      function(v){ F.category=v; draw(); }));
+    f.appendChild(sel(T.fCurrency, F.currency,
+      [["",T.all],["EGP","EGP"],["USD","USD"]],
+      function(v){ F.currency=v; draw(); }));
+    f.appendChild(sel(T.fMonth, F.month,
+      [["",T.all]].concat(months.map(function(m){return [m,m];})),
+      function(v){ F.month=v; draw(); }));
+    c.appendChild(f);
+
+    var rows = D.expenses.filter(function(r){
+      if(F.paidBy && r.paidBy!==F.paidBy) return false;
+      if(F.category && r.category!==F.category) return false;
+      if(F.currency && r.currency!==F.currency) return false;
+      if(F.month && monthOf(r.date)!==F.month) return false;
+      return true;
+    });
+
+    var tot={USD:0,EGP:0};
+    rows.forEach(function(r){ tot[r.currency]+=r.amount; });
+    var sum=el("div","sumline");
+    sum.appendChild(el("span",null,T.total+" · "+rows.length+" "+T.entries));
+    sum.appendChild(nm(pair(tot)));
+    c.appendChild(sum);
+
+    if(rows.length){
+      var card=el("div","card");
+      rows.forEach(function(r){
+        var row=el("div","row"), left=el("div");
+        left.appendChild(nm(abs(r.amount,r.currency),"r-main"));
+        var split = r.split==="founders_equal" ? T.splitEqual
+          : r.split==="charged_to" ? T.splitTo+" "+r.chargeTo : T.splitNone;
+        var bits=[r.paidBy, dt(r.date), split];
+        if(r.category)bits.push(r.category);
+        left.appendChild(el("div","r-sub",bits.join(" · ")));
+        if(r.description)left.appendChild(el("div","r-sub",r.description));
         row.appendChild(left);
-        if (r.status) row.appendChild(el("span", "chip", T["st_" + r.status]));
-        log.appendChild(row);
+        row.appendChild(el("span","chip", r.kind==="payout"?T.payout:T.expense));
+        card.appendChild(row);
       });
-      c.appendChild(log);
+      c.appendChild(card);
+    } else {
+      c.appendChild(el("div","card muted",T.noRows));
     }
 
-    var foot = el("div", "foot");
-    var rb = el("button", "refresh", T.refresh);
-    rb.onclick = load;
-    foot.appendChild(rb);
-    foot.appendChild(el("div", "stamp",
-      T.updated + " " + new Date(d.generatedAt).toLocaleTimeString()));
+    // who paid vs who owes it back
+    if(D.expenseSplit.length){
+      c.appendChild(el("div","title-sm",T.whoPaid));
+      ["EGP","USD"].forEach(function(cur){
+        var rs=D.expenseSplit.filter(function(p){
+          return Math.abs(p.paid[cur])>0.005||Math.abs(p.share[cur])>0.005;
+        });
+        if(!rs.length)return;
+        var card=el("div","card");
+        card.appendChild(el("div","flabel",cur));
+        var t=el("table"), h=el("tr");
+        [T.thName,T.thPaid,T.thShare,T.thBack].forEach(function(x){h.appendChild(el("th",null,x));});
+        t.appendChild(h);
+        rs.forEach(function(p){
+          var tr=el("tr");
+          tr.appendChild(el("td",null,p.name));
+          var a=el("td"); a.appendChild(nm(abs(p.paid[cur],cur))); tr.appendChild(a);
+          var b=el("td","muted"); b.appendChild(nm(abs(p.share[cur],cur))); tr.appendChild(b);
+          var n=el("td"); n.appendChild(nm(signed(p.net[cur],cur), p.net[cur]>=0?"pos":"neg")); tr.appendChild(n);
+          t.appendChild(tr);
+        });
+        card.appendChild(t); c.appendChild(card);
+      });
+    }
+  }
+
+  // ================================================================== draw
+  function draw() {
+    if(!D) return;
+    document.documentElement.lang=lang;
+    document.documentElement.dir = lang==="ar"?"rtl":"ltr";
+    document.body.dir = lang==="ar"?"rtl":"ltr";
+    $("title").textContent=T.title;
+    $("langBtn").textContent = lang==="ar"?"EN":"ع";
+    $("whoAmI").textContent=D.me.name;
+    $("tab-home").textContent=T.tabHome;
+    $("tab-income").textContent=T.tabIncome;
+    $("tab-expense").textContent=T.tabExpense;
+    ["home","income","expense"].forEach(function(k){
+      $("tab-"+k).classList.toggle("on", tab===k);
+    });
+    showOnly("content");
+
+    var c=$("content"); c.textContent="";
+    if(tab==="home") renderHome(c);
+    else if(tab==="income") renderIncome(c);
+    else renderExpense(c);
+
+    var foot=el("div","foot");
+    var rb=el("button","refresh",T.refresh); rb.onclick=load; foot.appendChild(rb);
+    foot.appendChild(el("div","stamp",T.updated+" "+new Date(D.generatedAt).toLocaleTimeString()));
     c.appendChild(foot);
   }
 
-  // ------------------------------------------------------- stage moving
-  function moveStage(from, label, count, btn) {
-    if (busy) return;
-    var ask = T.confirmMove(count, label);
-
-    function go() {
-      busy = true; btn.disabled = true;
-      fetch(BASE + "/advance", {
-        method: "POST",
-        headers: Object.assign({ "Content-Type": "application/json" }, headers()),
-        body: JSON.stringify({ from: from })
-      })
-        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
-        .then(function (res) {
-          busy = false;
-          if (!res.ok) { btn.disabled = false; return fail(res.body.error || T.errGeneric); }
-          toast(res.body.moved ? T.moved(res.body.moved) : T.nothingMoved);
-          payload = res.body;
-          render();
-        })
-        .catch(function () { busy = false; btn.disabled = false; fail(T.errNet); });
+  function move(from,label,count,btn){
+    if(busy)return;
+    var ask=T.confirmMove(count,label);
+    function go(){
+      busy=true; btn.disabled=true;
+      fetch(BASE+"/advance",{
+        method:"POST",
+        headers:Object.assign({"Content-Type":"application/json"},headers()),
+        body:JSON.stringify({from:from})
+      }).then(function(r){ return r.json().then(function(j){return {ok:r.ok,body:j};}); })
+        .then(function(res){
+          busy=false;
+          if(!res.ok){ btn.disabled=false; return fail(res.body.error||T.errGeneric); }
+          toast(res.body.moved?T.moved(res.body.moved):T.nothingMoved);
+          D=res.body; draw();
+        }).catch(function(){ busy=false; btn.disabled=false; fail(T.errNet); });
     }
-
-    if (tg && tg.showConfirm) tg.showConfirm(ask, function (ok) { if (ok) go(); });
-    else if (window.confirm(ask)) go();
+    if(tg&&tg.showConfirm) tg.showConfirm(ask,function(ok){ if(ok)go(); });
+    else if(window.confirm(ask)) go();
   }
 
-  function fail(msg) { $("errorText").textContent = msg; showOnly("error"); }
+  function fail(m){ $("errorText").textContent=m; showOnly("error"); }
 
-  function load() {
-    showOnly("loading");
-    $("loadingText").textContent = T.loading;
-    var h = headers();
-    if (!h["X-Dashboard-Token"] && !h["X-Telegram-Init-Data"]) return fail(T.openFromGroup);
-
-    fetch(BASE + "/data", { headers: h, cache: "no-store" })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
-      .then(function (res) {
-        if (!res.ok) return fail(res.body.error || T.errGeneric);
-        payload = res.body; render();
-      })
-      .catch(function () { fail(T.errNet); });
+  function load(){
+    showOnly("loading"); $("loadingText").textContent=T.loading;
+    var h=headers();
+    if(!h["X-Dashboard-Token"]&&!h["X-Telegram-Init-Data"]) return fail(T.openFromGroup);
+    fetch(BASE+"/data",{headers:h,cache:"no-store"})
+      .then(function(r){ return r.json().then(function(j){return {ok:r.ok,body:j};}); })
+      .then(function(res){
+        if(!res.ok) return fail(res.body.error||T.errGeneric);
+        D=res.body; draw();
+      }).catch(function(){ fail(T.errNet); });
   }
 
-  $("langBtn").onclick = function () {
-    lang = lang === "ar" ? "en" : "ar";
-    T = STR[lang];
-    if (payload) render(); else load();
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(el2){
+    el2.onclick=function(){ tab=el2.getAttribute("data-tab"); F.person=F.stage=F.month=F.currency=F.paidBy=F.category=""; draw(); };
+  });
+  $("langBtn").onclick=function(){
+    lang = lang==="ar"?"en":"ar"; T=STR[lang];
+    if(D)draw(); else load();
   };
 
   load();
