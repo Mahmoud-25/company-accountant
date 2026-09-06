@@ -253,13 +253,27 @@
   .diff {
     background:var(--tg-theme-secondary-bg-color, var(--surface));
     border:1px solid var(--line); border-radius:var(--r);
-    padding:14px 17px; box-shadow:var(--shadow); margin-bottom:16px;
-    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
-    font-weight:800; font-size:14px;
+    padding:16px 17px; box-shadow:var(--shadow); margin-bottom:16px;
   }
-  .diff > span:first-child {
-    color:var(--muted); font-size:12px;
-    text-transform:uppercase; letter-spacing:.07em;
+  .diff-label {
+    color:var(--muted); font-size:10.5px; font-weight:800;
+    text-transform:uppercase; letter-spacing:.08em;
+  }
+  .diff-who { font-size:15px; font-weight:800; margin-top:7px; }
+  .diff-amt {
+    font-size:27px; font-weight:900; letter-spacing:-.025em;
+    margin-top:2px; display:block; color:var(--neg);
+  }
+  .settle-btn {
+    margin-top:14px; width:100%; border:none; border-radius:12px; padding:13px;
+    font-family:inherit; font-size:14.5px; font-weight:800; cursor:pointer;
+    background:var(--pos); color:#fff;
+    box-shadow:0 6px 16px -8px var(--pos); transition:.15s;
+  }
+  .settle-btn:active:not(:disabled) { transform:scale(.985); }
+  .settle-btn:disabled {
+    background:var(--line-soft); color:var(--muted);
+    box-shadow:none; cursor:default;
   }
 
   /* ------------------------------------------------------ data tables */
@@ -396,6 +410,10 @@
       confirmWeekly:function(n){ return "تأكيد إتمام التسوية الأسبوعية لـ "+n+" عملية؟"; },
       spent:"صرف", difference:"الفرق", noSpend:"لا مصروفات",
       noEntries:"لا عمليات", doneNote:"تم تقسيمها",
+      settleBtn:"\u2705 تمت التسوية",
+      confirmSettle:function(d,c,a){ return "تأكيد: " + d + " دفع " + a + " إلى " + c + "\u061F"; },
+      settleDone:"تم تسجيل التسوية", settleNone:"لا يوجد ما يُسوّى",
+      settling:"جاري التسجيل\u2026",
       cDate:"التاريخ", cWork:"العمل", cAmount:"المبلغ", cStage:"المرحلة",
       cPaidBy:"دفع بواسطة", cCategory:"الفئة",
       ownAcc:"حسابه", inAcc:function(a){ return "حساب "+a; },
@@ -438,6 +456,10 @@
       confirmWeekly:function(n){ return "Mark "+n+" entries as settled?"; },
       spent:"spent", difference:"Difference", noSpend:"no spending",
       noEntries:"no entries", doneNote:"shared out",
+      settleBtn:"\u2705 Settled up",
+      confirmSettle:function(d,c,a){ return "Confirm: " + d + " paid " + a + " to " + c + "?"; },
+      settleDone:"Settlement recorded", settleNone:"nothing to settle",
+      settling:"Recording\u2026",
       cDate:"Date", cWork:"Work", cAmount:"Amount", cStage:"Stage",
       cPaidBy:"Paid by", cCategory:"Category",
       ownAcc:"own account", inAcc:function(a){ return a+"'s account"; },
@@ -735,17 +757,27 @@
       });
       c.appendChild(split);
 
-      // Whoever paid more than their share is owed the gap back.
-      var gap = round2((rows[0].paid[cur] - rows[1].paid[cur]) / 2);
+      // What is still outstanding, not paid-minus-share: this figure moves
+      // when someone actually settles up, so the button can reset it.
+      // Name and amount sit on separate lines - run together, Arabic bidi
+      // pulls the number against the wrong name.
+      var owed = rows[0].net[cur];
       var d = el("div","diff");
-      d.appendChild(el("span",null,T.difference));
-      if (Math.abs(gap) < 0.005) {
-        d.appendChild(el("span","muted",T.allSquare));
+      d.appendChild(el("div","diff-label",T.difference));
+      if (Math.abs(owed) < 0.005) {
+        d.appendChild(el("div","diff-who muted",T.allSquare));
       } else {
-        var debtor  = gap > 0 ? rows[1].name : rows[0].name;
-        var creditor= gap > 0 ? rows[0].name : rows[1].name;
-        d.appendChild(el("span",null,
-          debtor+" "+T.owes+" "+creditor+"  "+abs(gap,cur)));
+        var debtor   = owed < 0 ? rows[0].name : rows[1].name;
+        var creditor = owed < 0 ? rows[1].name : rows[0].name;
+        d.appendChild(el("div","diff-who", debtor+" "+T.owes+" "+creditor));
+        d.appendChild(nm(abs(owed,cur),"diff-amt"));
+        var sb = el("button","settle-btn",T.settleBtn);
+        (function(currency, dr, cr, amount, btn){
+          btn.onclick = function(){
+            settleUp(currency, T.confirmSettle(dr, cr, amount), btn);
+          };
+        })(cur, debtor, creditor, abs(owed,cur), sb);
+        d.appendChild(sb);
       }
       c.appendChild(d);
     });
@@ -877,6 +909,33 @@
             return toast(res.body.error||T.errGeneric);
           }
           toast(res.body.moved?T.moved(res.body.moved):T.nothingMoved);
+          D=res.body; draw();
+        }).catch(function(){
+          busy=false; btn.disabled=false; btn.textContent=was; toast(T.errNet);
+        });
+    });
+  }
+
+  // Records the payment as a real transfer, which cancels the debt in the
+  // ledger - so the number resets because the books balance, not because
+  // anything was blanked.
+  function settleUp(currency, question, btn){
+    if(busy)return;
+    confirmThen(question, function(){
+      busy=true; btn.disabled=true;
+      var was=btn.textContent; btn.textContent=T.settling;
+      fetch(BASE+"/settle",{
+        method:"POST",
+        headers:Object.assign({"Content-Type":"application/json"},headers()),
+        body:JSON.stringify({currency:currency})
+      }).then(function(r){ return r.json().then(function(j){return {ok:r.ok,body:j};}); })
+        .then(function(res){
+          busy=false;
+          if(!res.ok){
+            btn.disabled=false; btn.textContent=was;
+            return toast(res.body.error||T.errGeneric);
+          }
+          toast(res.body.settled?T.settleDone:T.settleNone);
           D=res.body; draw();
         }).catch(function(){
           busy=false; btn.disabled=false; btn.textContent=was; toast(T.errNet);
