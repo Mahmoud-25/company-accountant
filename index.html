@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>💰 لوحة المحاسبة</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Cairo', sans-serif;
+    background: var(--tg-theme-bg-color, #f8fafc);
+    color: var(--tg-theme-text-color, #1e293b);
+    padding: 12px 12px 80px;
+    min-height: 100vh;
+  }
+  body[dir="rtl"] { text-align: right; }
+  body[dir="ltr"] { text-align: left; }
+  .container { max-width: 720px; margin: 0 auto; }
+
+  /* ---------------------------------------------------------- header */
+  .header { margin-bottom: 16px; }
+  .header-top {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; margin-bottom: 8px;
+  }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; color: var(--tg-theme-hint-color, #64748b); }
+  .lang-switch {
+    background: var(--tg-theme-button-color, #3390ec);
+    color: var(--tg-theme-button-text-color, #fff);
+    border: none; padding: 6px 12px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .user-info {
+    font-size: 11px; color: var(--tg-theme-hint-color, #64748b);
+    margin-top: 6px; padding: 6px 10px;
+    background: var(--tg-theme-secondary-bg-color, #f1f5f9);
+    border-radius: 6px; display: inline-block;
+  }
+
+  /* ------------------------------------------------------- KPI cards */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 8px; margin-bottom: 16px;
+  }
+  .kpi-card {
+    background: var(--tg-theme-secondary-bg-color, #fff);
+    padding: 12px; border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    position: relative; overflow: hidden;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; right: 0;
+    width: 4px; height: 100%;
+  }
+  body[dir="rtl"] .kpi-card::before { right: auto; left: 0; }
+  .kpi-card.blue::before   { background: #3b82f6; }
+  .kpi-card.green::before  { background: #10b981; }
+  .kpi-card.red::before    { background: #ef4444; }
+  .kpi-card.purple::before { background: #8b5cf6; }
+  .kpi-label {
+    font-size: 9px; font-weight: 600; text-transform: uppercase;
+    color: var(--tg-theme-hint-color, #64748b); margin-bottom: 4px;
+  }
+  .kpi-value { font-size: 18px; font-weight: 700; }
+  .kpi-icon {
+    position: absolute; top: 10px; right: 10px;
+    font-size: 24px; opacity: .2;
+  }
+  body[dir="rtl"] .kpi-icon { right: auto; left: 10px; }
+
+  /* ------------------------------------------------------ settle-up */
+  .section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--tg-theme-hint-color, #94a3b8);
+    margin: 22px 0 8px;
+  }
+  .settle {
+    background: var(--tg-theme-button-color, #3390ec);
+    color: var(--tg-theme-button-text-color, #fff);
+    border-radius: 14px; padding: 16px 18px; margin-bottom: 8px;
+  }
+  .settle .who { font-size: 14px; opacity: .92; }
+  .settle .amt {
+    font-size: 28px; font-weight: 750; margin-top: 2px; letter-spacing: -.02em;
+  }
+  .settle.none {
+    background: var(--tg-theme-secondary-bg-color, #fff);
+    color: var(--tg-theme-text-color, #1e293b);
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  }
+  .settle.none .amt { font-size: 19px; font-weight: 700; }
+  .settle.none .who { color: var(--tg-theme-hint-color, #64748b); }
+
+  /* ------------------------------------------------ comparison bars */
+  .card {
+    background: var(--tg-theme-secondary-bg-color, #fff);
+    padding: 14px 16px; border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 10px;
+  }
+  .bar-item { margin-bottom: 10px; }
+  .bar-item:last-child { margin-bottom: 0; }
+  .bar-label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; margin-bottom: 5px;
+  }
+  .bar-label .v { font-weight: 700; }
+  .bar-track {
+    height: 8px; background: var(--tg-theme-bg-color, #eef2f7);
+    border-radius: 999px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 999px; }
+  .bar-fill.green { background: #10b981; }
+  .bar-fill.red   { background: #ef4444; }
+
+  /* ---------------------------------------------------- stage blocks */
+  .stage-head {
+    display: flex; justify-content: space-between;
+    align-items: baseline; gap: 10px; margin-bottom: 10px;
+  }
+  .stage-head .t { font-weight: 700; font-size: 15px; }
+  .stage-head .n { font-size: 13px; color: var(--tg-theme-hint-color, #64748b); }
+  .grp { padding: 11px 0; }
+  .grp + .grp { border-top: 1px solid var(--tg-theme-bg-color, #eef2f7); }
+  .grp-top {
+    display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+  }
+  .grp-rel { font-weight: 600; font-size: 14px; }
+  .grp-rel.flat { color: var(--tg-theme-hint-color, #64748b); font-weight: 500; }
+  .grp-amt { font-weight: 700; white-space: nowrap; }
+  .grp-amt.owed { color: #ef4444; }
+  .grp-why {
+    font-size: 12px; color: var(--tg-theme-hint-color, #64748b); margin-top: 3px;
+  }
+  .grp-items {
+    font-size: 12px; color: var(--tg-theme-hint-color, #94a3b8);
+    margin-top: 5px; word-spacing: .12em;
+  }
+  .badge {
+    display: inline-block; background: var(--tg-theme-bg-color, #eef2f7);
+    color: var(--tg-theme-hint-color, #64748b);
+    border-radius: 999px; padding: 1px 8px; font-size: 10px; margin: 0 4px;
+    vertical-align: middle;
+  }
+  .hint { font-size: 12px; color: var(--tg-theme-hint-color, #64748b); margin-top: 4px; }
+
+  /* --------------------------------------------------------- tables */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-size: 11px; font-weight: 600; padding: 4px 0;
+    color: var(--tg-theme-hint-color, #64748b);
+  }
+  td { padding: 7px 0; border-top: 1px solid var(--tg-theme-bg-color, #eef2f7); font-size: 14px; }
+  body[dir="rtl"] th, body[dir="rtl"] td { text-align: left; }
+  body[dir="rtl"] th:first-child, body[dir="rtl"] td:first-child { text-align: right; }
+  body[dir="ltr"] th, body[dir="ltr"] td { text-align: right; }
+  body[dir="ltr"] th:first-child, body[dir="ltr"] td:first-child { text-align: left; }
+  .pos { color: #10b981; } .neg { color: #ef4444; }
+
+  /* --------------------------------------------------- transactions */
+  .txn { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; }
+  .txn + .txn { border-top: 1px solid var(--tg-theme-bg-color, #eef2f7); }
+  .txn-main { font-size: 14px; font-weight: 600; }
+  .txn-sub { font-size: 12px; color: var(--tg-theme-hint-color, #64748b); margin-top: 2px; }
+  .chip {
+    font-size: 11px; padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+    background: var(--tg-theme-bg-color, #eef2f7);
+    color: var(--tg-theme-hint-color, #64748b); align-self: flex-start;
+  }
+
+  /* -------------------------------------------------------- states */
+  .state {
+    display: none; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 240px; text-align: center;
+    padding: 30px 20px; gap: 14px;
+  }
+  .state.on { display: flex; }
+  .spinner {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 4px solid var(--tg-theme-bg-color, #e2e8f0);
+    border-top-color: var(--tg-theme-button-color, #3390ec);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .state-icon { font-size: 44px; opacity: .5; }
+  .state-text { font-size: 15px; font-weight: 600; }
+  .state-hint { font-size: 13px; color: var(--tg-theme-hint-color, #64748b); }
+
+  .foot { margin-top: 26px; text-align: center; }
+  .refresh {
+    background: var(--tg-theme-secondary-bg-color, #fff);
+    color: var(--tg-theme-text-color, #1e293b);
+    border: 1px solid var(--tg-theme-hint-color, #e2e8f0);
+    border-radius: 9px; padding: 8px 16px; font-size: 14px; cursor: pointer;
+  }
+  .stamp { font-size: 11px; color: var(--tg-theme-hint-color, #94a3b8); margin-top: 8px; }
+  .num { direction: ltr; unicode-bidi: embed; display: inline-block; }
+</style>
+</head>
+<body dir="rtl">
+<div class="container">
+
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1 id="title">💰 لوحة المحاسبة</h1>
+        <div class="subtitle" id="subtitle"></div>
+      </div>
+      <button class="lang-switch" id="langBtn">EN</button>
+    </div>
+    <div class="user-info" id="userInfo" style="display:none"></div>
+  </div>
+
+  <div class="state on" id="loading">
+    <div class="spinner"></div>
+    <div class="state-hint" id="loadingText">جاري التحميل…</div>
+  </div>
+
+  <div class="state" id="error">
+    <div class="state-icon">⚠️</div>
+    <div class="state-text" id="errorText"></div>
+  </div>
+
+  <div class="state" id="empty">
+    <div class="state-icon">📭</div>
+    <div class="state-text" id="emptyText"></div>
+    <div class="state-hint" id="emptyHint"></div>
+  </div>
+
+  <div id="content" style="display:none"></div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // The data API. This page is static; every number below comes from here.
+  var API = "https://qrxiqqkzmtumcwjfqujq.supabase.co/functions/v1/dashboard/data";
+
+  // ------------------------------------------------------------ strings
+  var STR = {
+    ar: {
+      title: "💰 لوحة المحاسبة",
+      loading: "جاري التحميل…",
+      emptyText: "لا توجد بيانات بعد",
+      emptyHint: "سجّل أول عملية في مجموعة تيليجرام.",
+      openFromGroup: "افتح اللوحة من أمر /dashboard في المجموعة.",
+      income: "الدخل", expenses: "المصروفات",
+      owedNow: "مستحق الآن", onTheWay: "في الطريق",
+      whoPays: "من يدفع لمن",
+      pays: "يدفع لـ",
+      allSquare: "لا توجد مستحقات",
+      allSquareHint: "الحسابات متساوية بين الشركاء.",
+      compare: "الدخل مقابل المصروفات",
+      stages: "مراحل الأموال",
+      stage_pending: "⏳ قيد الانتظار في حساب العمل",
+      stage_stripe: "💳 تم التحويل إلى Stripe",
+      stage_bank: "🏦 في الحساب البنكي",
+      bankOnly: "المحسوب في المستحقات هو مرحلة البنك فقط. ما قبلها ما زال في الطريق.",
+      owes: "مدين لـ",
+      noDebt: "لا مستحقات",
+      workOn: function (worker, account) {
+        return "عمل " + worker + " على حساب " + account;
+      },
+      sharedWork: function (worker, account, other) {
+        return "عمل " + worker + " على حساب " + account + " — النصف لـ " + other;
+      },
+      ownWork: function (who) { return "عمل " + who + " على حسابه"; },
+      shared: "مشترك",
+      month: "هذا الشهر",
+      thName: "الشريك", thEarned: "المكتسب", thCosts: "التكاليف", thNet: "الصافي",
+      recent: "آخر العمليات",
+      refresh: "تحديث", updated: "آخر تحديث",
+      kind: { income: "دخل", expense: "مصروف", payout: "أجر موظف", transfer: "تحويل" },
+      inAccount: function (worker, account) { return worker + " — حساب " + account; },
+      errGeneric: "تعذّر تحميل اللوحة.",
+      errNet: "تعذّر الوصول للخادم. تحقق من الاتصال."
+    },
+    en: {
+      title: "💰 Accounting dashboard",
+      loading: "Loading…",
+      emptyText: "Nothing recorded yet",
+      emptyHint: "Add your first entry in the Telegram group.",
+      openFromGroup: "Open this with /dashboard in the group.",
+      income: "Income", expenses: "Expenses",
+      owedNow: "Owed now", onTheWay: "On the way",
+      whoPays: "Who pays whom",
+      pays: "pays",
+      allSquare: "All square",
+      allSquareHint: "Nothing is owed between the partners.",
+      compare: "Income vs expenses",
+      stages: "Money by stage",
+      stage_pending: "⏳ Pending in the work account",
+      stage_stripe: "💳 Moved to Stripe",
+      stage_bank: "🏦 In the bank account",
+      bankOnly: "Only the bank stage counts as owed. Earlier stages are still travelling.",
+      owes: "owes",
+      noDebt: "no debt",
+      workOn: function (worker, account) {
+        return worker + "'s work on " + account + "'s account";
+      },
+      sharedWork: function (worker, account, other) {
+        return worker + "'s work on " + account + "'s account — half is " + other + "'s";
+      },
+      ownWork: function (who) { return who + "'s work on their own account"; },
+      shared: "shared",
+      month: "This month",
+      thName: "Partner", thEarned: "Earned", thCosts: "Costs", thNet: "Net",
+      recent: "Recent entries",
+      refresh: "Refresh", updated: "Updated",
+      kind: { income: "Income", expense: "Expense", payout: "Payout", transfer: "Transfer" },
+      inAccount: function (worker, account) { return worker + " — " + account + "'s account"; },
+      errGeneric: "Could not load the dashboard.",
+      errNet: "Could not reach the server. Check your connection."
+    }
+  };
+
+  var lang = "ar";
+  var T = STR.ar;
+  var payload = null;
+
+  // ------------------------------------------------------------ helpers
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = String(text);
+    return n;
+  }
+  function numSpan(text, cls) {
+    var n = el("span", "num" + (cls ? " " + cls : ""), text);
+    return n;
+  }
+  function money(n, cur) {
+    var v = Math.abs(n).toLocaleString("en-US",
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var s = n < 0 ? "-" : "";
+    return cur === "USD" ? s + "$" + v : s + v + " EGP";
+  }
+  function plain(n) {
+    return Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  }
+  function niceDate(iso) {
+    var d = new Date(iso + "T12:00:00Z");
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(lang === "ar" ? "en-GB" : "en-GB",
+      { day: "numeric", month: "short", timeZone: "UTC" });
+  }
+  function pair(p) {
+    var out = [];
+    if (Math.abs(p.USD) > 0.005) out.push(money(p.USD, "USD"));
+    if (Math.abs(p.EGP) > 0.005) out.push(money(p.EGP, "EGP"));
+    return out.length ? out.join(" · ") : money(0, "USD");
+  }
+  function showOnly(id) {
+    ["loading", "error", "empty"].forEach(function (s) {
+      $(s).classList.toggle("on", s === id);
+    });
+    $("content").style.display = id === "content" ? "block" : "none";
+  }
+
+  // ------------------------------------------------------------- render
+  function render() {
+    var d = payload;
+    if (!d) return;
+
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    document.body.dir = lang === "ar" ? "rtl" : "ltr";
+    $("title").textContent = T.title;
+    $("langBtn").textContent = lang === "ar" ? "EN" : "ع";
+    $("subtitle").textContent = d.month.title;
+    $("userInfo").textContent = d.me.name;
+    $("userInfo").style.display = "inline-block";
+
+    var c = $("content");
+    c.textContent = "";
+
+    var hasAnything = d.stages.length || d.recent.length || d.settlePlan.length;
+    if (!hasAnything) {
+      $("emptyText").textContent = T.emptyText;
+      $("emptyHint").textContent = T.emptyHint;
+      showOnly("empty");
+      return;
+    }
+    showOnly("content");
+
+    // --- KPI cards
+    var kpis = [
+      ["blue",   "💵", T.income,   pair(d.month.totals.income)],
+      ["red",    "🧾", T.expenses, pair(addPairs(d.month.totals.expense, d.month.totals.payout))],
+      ["green",  "⚖️", T.owedNow,  settleHeadline(d)],
+      ["purple", "📦", T.onTheWay, inFlightTotal(d)]
+    ];
+    var grid = el("div", "kpi-grid");
+    kpis.forEach(function (k) {
+      var card = el("div", "kpi-card " + k[0]);
+      card.appendChild(el("div", "kpi-icon", k[1]));
+      card.appendChild(el("div", "kpi-label", k[2]));
+      var v = el("div", "kpi-value");
+      v.appendChild(numSpan(k[3]));
+      card.appendChild(v);
+      grid.appendChild(card);
+    });
+    c.appendChild(grid);
+
+    // --- who pays whom
+    c.appendChild(el("div", "section-title", T.whoPays));
+    if (d.settlePlan.length) {
+      d.settlePlan.forEach(function (s) {
+        var b = el("div", "settle");
+        b.appendChild(el("div", "who", s.from + " " + T.pays + " " + s.to));
+        var a = el("div", "amt");
+        a.appendChild(numSpan(money(s.amount, s.currency)));
+        b.appendChild(a);
+        c.appendChild(b);
+      });
+    } else {
+      var none = el("div", "settle none");
+      none.appendChild(el("div", "amt", T.allSquare));
+      none.appendChild(el("div", "who", T.allSquareHint));
+      c.appendChild(none);
+    }
+
+    // --- income vs expenses bars
+    var inc = d.month.totals.income, exp = addPairs(d.month.totals.expense, d.month.totals.payout);
+    if (inc.USD + inc.EGP + exp.USD + exp.EGP > 0.005) {
+      c.appendChild(el("div", "section-title", T.compare));
+      var cmp = el("div", "card");
+      [[T.income, inc, "green"], [T.expenses, exp, "red"]].forEach(function (b) {
+        ["USD", "EGP"].forEach(function (cur) {
+          var total = Math.max(inc[cur], exp[cur]);
+          if (total <= 0.005) return;
+          var item = el("div", "bar-item");
+          var lab = el("div", "bar-label");
+          lab.appendChild(el("span", null, b[0] + " · " + cur));
+          lab.appendChild(numSpan(money(b[1][cur], cur), "v"));
+          item.appendChild(lab);
+          var track = el("div", "bar-track");
+          var fill = el("div", "bar-fill " + b[2]);
+          fill.style.width = Math.max(2, (b[1][cur] / total) * 100) + "%";
+          track.appendChild(fill);
+          item.appendChild(track);
+          cmp.appendChild(item);
+        });
+      });
+      if (cmp.childNodes.length) c.appendChild(cmp);
+    }
+
+    // --- the pipeline
+    if (d.stages.length) {
+      c.appendChild(el("div", "section-title", T.stages));
+      d.stages.forEach(function (st) {
+        var card = el("div", "card");
+        var head = el("div", "stage-head");
+        head.appendChild(el("span", "t", T["stage_" + st.status]));
+        head.appendChild(numSpan(pair(st.totals), "n"));
+        card.appendChild(head);
+
+        st.groups.forEach(function (g) {
+          var box = el("div", "grp");
+          var top = el("div", "grp-top");
+
+          if (g.kind === "own") {
+            var flat = el("span", "grp-rel flat", g.earner + " — " + T.noDebt);
+            top.appendChild(flat);
+            top.appendChild(numSpan(money(g.total, g.currency), "grp-amt"));
+          } else {
+            var rel = el("span", "grp-rel", g.debtor + " " + T.owes + " " + g.creditor);
+            if (g.isEmployee) rel.appendChild(el("span", "badge", T.shared));
+            top.appendChild(rel);
+            top.appendChild(numSpan(money(g.debt, g.currency), "grp-amt owed"));
+          }
+          box.appendChild(top);
+
+          var why;
+          if (g.kind === "own") why = T.ownWork(g.earner);
+          else if (g.kind === "shared") why = T.sharedWork(g.earner, g.account, g.creditor);
+          else why = T.workOn(g.earner, g.account);
+          box.appendChild(el("div", "grp-why", why));
+
+          var items = g.items.map(function (i) { return plain(i.amount); }).join("  +  ");
+          if (g.items.length > 1) items += "  =  " + plain(g.total);
+          box.appendChild(numSpan(items, "grp-items"));
+
+          card.appendChild(box);
+        });
+        c.appendChild(card);
+      });
+      c.appendChild(el("div", "hint", T.bankOnly));
+    }
+
+    // --- this month, per person
+    if (d.month.perPerson.length) {
+      c.appendChild(el("div", "section-title", T.month));
+      ["USD", "EGP"].forEach(function (cur) {
+        var rows = d.month.perPerson.filter(function (p) {
+          return Math.abs(p.income[cur]) > 0.005 || Math.abs(p.costs[cur]) > 0.005;
+        });
+        if (!rows.length) return;
+        var card = el("div", "card");
+        card.appendChild(el("div", "kpi-label", cur));
+        var t = el("table"), head = el("tr");
+        [T.thName, T.thEarned, T.thCosts, T.thNet].forEach(function (h) {
+          head.appendChild(el("th", null, h));
+        });
+        t.appendChild(head);
+        rows.forEach(function (p) {
+          var tr = el("tr");
+          tr.appendChild(el("td", null, p.name));
+          var a = el("td"); a.appendChild(numSpan(money(p.income[cur], cur))); tr.appendChild(a);
+          var b = el("td"); b.appendChild(numSpan(money(-p.costs[cur], cur))); tr.appendChild(b);
+          var n = el("td");
+          n.appendChild(numSpan(money(p.net[cur], cur), p.net[cur] >= 0 ? "pos" : "neg"));
+          tr.appendChild(n);
+          t.appendChild(tr);
+        });
+        card.appendChild(t);
+        c.appendChild(card);
+      });
+    }
+
+    // --- the log
+    if (d.recent.length) {
+      c.appendChild(el("div", "section-title", T.recent));
+      var log = el("div", "card");
+      d.recent.forEach(function (r) {
+        var row = el("div", "txn"), left = el("div");
+        var main = el("div", "txn-main");
+        main.appendChild(document.createTextNode(T.kind[r.type] + " · "));
+        main.appendChild(numSpan(money(r.amount, r.currency)));
+        left.appendChild(main);
+
+        var who;
+        if (r.type === "income") {
+          who = r.earned_by_name === r.received_by_name
+            ? r.received_by_name
+            : T.inAccount(r.earned_by_name, r.received_by_name);
+        } else if (r.type === "transfer") {
+          who = r.from_person_name + " → " + r.to_person_name;
+        } else {
+          who = r.paid_by_name + (r.beneficiary_name ? " → " + r.beneficiary_name : "");
+        }
+        var note = [r.description, r.client].filter(Boolean).join(" — ");
+        left.appendChild(el("div", "txn-sub",
+          who + " · " + niceDate(r.occurred_on) + (note ? " · " + note : "")));
+        row.appendChild(left);
+        if (r.status) row.appendChild(el("span", "chip", T["stage_" + r.status] || r.status));
+        log.appendChild(row);
+      });
+      c.appendChild(log);
+    }
+
+    // --- footer
+    var foot = el("div", "foot");
+    var btn = el("button", "refresh", T.refresh);
+    btn.onclick = load;
+    foot.appendChild(btn);
+    foot.appendChild(el("div", "stamp",
+      T.updated + " " + new Date(d.generatedAt).toLocaleTimeString()));
+    c.appendChild(foot);
+  }
+
+  function addPairs(a, b) { return { USD: a.USD + b.USD, EGP: a.EGP + b.EGP }; }
+
+  function settleHeadline(d) {
+    if (!d.settlePlan.length) return T.allSquare;
+    return d.settlePlan.map(function (s) {
+      return money(s.amount, s.currency);
+    }).join(" · ");
+  }
+  function inFlightTotal(d) {
+    var p = { USD: 0, EGP: 0 };
+    d.stages.forEach(function (st) {
+      if (st.status === "bank") return;
+      p.USD += st.totals.USD; p.EGP += st.totals.EGP;
+    });
+    return pair(p);
+  }
+
+  function fail(msg) {
+    $("errorText").textContent = msg;
+    showOnly("error");
+  }
+
+  // --------------------------------------------------------------- load
+  function load() {
+    showOnly("loading");
+    $("loadingText").textContent = T.loading;
+
+    var headers = {};
+    if (tg && tg.initData) headers["X-Telegram-Init-Data"] = tg.initData;
+    var t = new URLSearchParams(location.search).get("t");
+    if (t) headers["X-Dashboard-Token"] = t;
+    if (!t && !(tg && tg.initData)) return fail(T.openFromGroup);
+
+    fetch(API, { headers: headers, cache: "no-store" })
+      .then(function (r) {
+        return r.json().then(function (j) { return { ok: r.ok, body: j }; });
+      })
+      .then(function (res) {
+        if (!res.ok) return fail(res.body.error || T.errGeneric);
+        payload = res.body;
+        render();
+      })
+      .catch(function () { fail(T.errNet); });
+  }
+
+  $("langBtn").onclick = function () {
+    lang = lang === "ar" ? "en" : "ar";
+    T = STR[lang];
+    if (payload) render(); else load();
+  };
+
+  load();
+})();
+</script>
+</body>
+</html>
