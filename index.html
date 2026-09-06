@@ -90,6 +90,14 @@
   .settle.none .who { color:var(--tg-theme-hint-color,#64748b); }
 
   /* stage card */
+  .stage-card { position:relative; overflow:hidden; }
+  .stage-card::before { content:''; position:absolute; top:0; right:0; width:4px; height:100%; }
+  body[dir="rtl"] .stage-card::before { right:auto; left:0; }
+  .stage-card.pending::before { background:#3b82f6; }
+  .stage-card.stripe::before  { background:#8b5cf6; }
+  .stage-card.bank::before    { background:#10b981; }
+  .stage-card.paid::before    { background:#94a3b8; }
+  .stage-card.empty { opacity:.72; }
   .st-head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
   .st-name { font-weight:700; font-size:16px; }
   .st-total { font-weight:700; font-size:16px; }
@@ -268,6 +276,7 @@
       weeklyNone:"لا شيء في البنك بعد",
       confirmWeekly:function(n){ return "تأكيد إتمام التسوية الأسبوعية لـ "+n+" عملية؟"; },
       spent:"صرف", difference:"الفرق", noSpend:"لا مصروفات",
+      noEntries:"لا عمليات", doneNote:"تم تقسيمها",
       cDate:"التاريخ", cWork:"العمل", cAmount:"المبلغ", cStage:"المرحلة",
       cPaidBy:"دفع بواسطة", cCategory:"الفئة",
       ownAcc:"حسابه", inAcc:function(a){ return "حساب "+a; },
@@ -309,6 +318,7 @@
       weeklyNone:"nothing in the bank yet",
       confirmWeekly:function(n){ return "Mark "+n+" entries as settled?"; },
       spent:"spent", difference:"Difference", noSpend:"no spending",
+      noEntries:"no entries", doneNote:"shared out",
       cDate:"Date", cWork:"Work", cAmount:"Amount", cStage:"Stage",
       cPaidBy:"Paid by", cCategory:"Category",
       ownAcc:"own account", inAcc:function(a){ return a+"'s account"; },
@@ -415,34 +425,7 @@
 
   // =================================================================== home
   function renderHome(c) {
-    // --- where the money is right now, at a glance
-    var byStage = {};
-    D.stages.forEach(function(s){ byStage[s.status] = s; });
-
-    var grid = el("div","kpi-grid");
-    [["blue","pending"],["purple","stripe"],["green","bank"]].forEach(function(k){
-      var st = byStage[k[1]];
-      var card = el("div","kpi-card "+k[0]);
-      card.appendChild(el("div","kpi-label",T["st_"+k[1]]));
-      card.appendChild(nm(st?pair(st.totals):abs(0,"USD"),"kpi-value"));
-      card.appendChild(el("div","kpi-sub", st ? st.count+" "+T.entries : "—"));
-      grid.appendChild(card);
-    });
-
-    // --- the weekly settle-up: pressed once the two of them have transferred
-    var bank = byStage["bank"];
-    var bankCount = bank ? bank.count : 0;
-    var act = el("div","kpi-card grey");
-    act.appendChild(el("div","kpi-label",T.weeklyTitle));
-    act.appendChild(el("div","kpi-sub", bankCount
-      ? T.weeklyHint(D.anchor, D.other) : T.weeklyNone));
-    var wk = el("button","kpi-btn",T.weeklyBtn);
-    wk.disabled = !bankCount;
-    wk.onclick = function(){ move("bank", T.confirmWeekly(bankCount), wk); };
-    act.appendChild(wk);
-    grid.appendChild(act);
-    c.appendChild(grid);
-
+    // The headline: who owes whom, on money that has actually landed.
     if (D.settlePlan.length) {
       D.settlePlan.forEach(function(s){
         var b=el("div","settle");
@@ -457,88 +440,106 @@
       c.appendChild(n);
     }
 
+    // One card per stage, always all four, each moving on its own.
     D.stages.forEach(function(st){
-      var card=el("div","card");
+      var empty = st.count === 0;
+      var card = el("div","card stage-card "+st.status+(empty?" empty":""));
 
       var head=el("div","st-head");
       head.appendChild(el("span","st-name",T["st_"+st.status]));
       head.appendChild(nm(pair(st.totals),"st-total"));
       card.appendChild(head);
 
-      // how long it has been waiting, and when it is due
-      var meta=[st.count+" "+T.entries];
-      if (st.status==="bank") {
-        meta.push(T.arrived);
-      } else if (st.oldestDays!==null) {
-        meta.push(T.waitingDays(st.oldestDays, D.stageDays));
-        if (st.readyCount) meta.push(T.readyNow(st.readyCount));
-        else if (st.nextDue) meta.push(T.dueOn(dt(st.nextDue)));
+      var meta=[empty ? T.noEntries : st.count+" "+T.entries];
+      if (!empty) {
+        if (st.status==="bank") meta.push(T.arrived);
+        else if (st.status==="paid") meta.push(T.doneNote);
+        else if (st.oldestDays!==null) {
+          meta.push(T.waitingDays(st.oldestDays, D.stageDays));
+          if (st.readyCount) meta.push(T.readyNow(st.readyCount));
+          else if (st.nextDue) meta.push(T.dueOn(dt(st.nextDue)));
+        }
       }
       card.appendChild(el("div","st-meta",meta.join(" · ")));
 
-      if (st.status!=="bank" && st.oldestDays!==null) {
+      if (!empty && (st.status==="pending"||st.status==="stripe") && st.oldestDays!==null) {
         var track=el("div","track");
         var f=el("div","fill"+(st.readyCount?" ready":""));
         f.style.width=Math.min(100,(st.oldestDays/D.stageDays)*100)+"%";
         track.appendChild(f); card.appendChild(track);
       }
 
-      // the net, in words, plus a details toggle
-      var netRow=el("div","st-net");
-      if (Math.abs(st.netBetween)<0.005) netRow.appendChild(el("span","muted",T.settledHere));
-      else {
-        var dr=st.netBetween>0?D.anchor:D.other, cr=st.netBetween>0?D.other:D.anchor;
-        netRow.appendChild(el("span",null, dr+" "+T.owes+" "+cr+"  "+abs(st.netBetween,"USD")));
-      }
-      var tgl=el("button","toggle", open[st.status]?T.hide:T.details);
-      netRow.appendChild(tgl);
-      card.appendChild(netRow);
+      if (!empty) {
+        var netRow=el("div","st-net");
+        if (Math.abs(st.netBetween)<0.005) netRow.appendChild(el("span","muted",T.settledHere));
+        else {
+          var dr=st.netBetween>0?D.anchor:D.other, cr=st.netBetween>0?D.other:D.anchor;
+          netRow.appendChild(el("span",null, dr+" "+T.owes+" "+cr+"  "+abs(st.netBetween,"USD")));
+        }
+        var tgl=el("button","toggle", open[st.status]?T.hide:T.details);
+        netRow.appendChild(tgl);
+        card.appendChild(netRow);
 
-      var detail=el("div","detail"+(open[st.status]?" on":""));
-      detail.appendChild(el("div","st-meta",T.signNote(D.anchor)));
-      st.sections.forEach(function(s){
-        var box=el("div","sec");
-        var top=el("div","sec-top");
-        var name=el("span","sec-name",s.person);
-        if(s.kind==="employee")name.appendChild(el("span","badge",T.shared));
-        top.appendChild(name);
-        // Own work is nobody's debt, so it should not be coloured like one.
-        top.appendChild(nm(
-          s.kind==="own" ? abs(s.net,s.currency) : signed(s.net,s.currency),
-          "sec-net "+(s.kind==="own" ? "muted" : (s.net<0?"pos":"neg"))));
-        box.appendChild(top);
-        var et = dataTable([T.cDate, T.cAmount]);
-        s.entries.forEach(function(e){
-          var v = e.signed || e.amount;
-          var tr = el("tr");
-          tr.appendChild(cell("date", dt(e.occurred_on)));
-          tr.appendChild(cell(
-            "amt " + (s.kind==="own" ? "muted" : (v<0 ? "pos" : "neg")),
-            nm(s.kind==="own" ? abs(e.amount,s.currency) : sPlain(v))));
-          et.appendChild(tr);
+        var detail=el("div","detail"+(open[st.status]?" on":""));
+        detail.appendChild(el("div","st-meta",T.signNote(D.anchor)));
+        st.sections.forEach(function(s){
+          var box=el("div","sec");
+          var top=el("div","sec-top");
+          var name=el("span","sec-name",s.person);
+          if(s.kind==="employee")name.appendChild(el("span","badge",T.shared));
+          top.appendChild(name);
+          // Own work is nobody's debt, so it should not be coloured like one.
+          top.appendChild(nm(
+            s.kind==="own" ? abs(s.net,s.currency) : signed(s.net,s.currency),
+            "sec-net "+(s.kind==="own" ? "muted" : (s.net<0?"pos":"neg"))));
+          box.appendChild(top);
+
+          var et = dataTable([T.cDate, T.cAmount]);
+          s.entries.forEach(function(e){
+            var v = e.signed || e.amount;
+            var tr = el("tr");
+            tr.appendChild(cell("date", dt(e.occurred_on)));
+            tr.appendChild(cell(
+              "amt " + (s.kind==="own" ? "muted" : (v<0 ? "pos" : "neg")),
+              nm(s.kind==="own" ? abs(e.amount,s.currency) : sPlain(v))));
+            et.appendChild(tr);
+          });
+          box.appendChild(et);
+
+          var mean;
+          if(s.kind==="own") mean=T.ownWork(s.person);
+          else if(s.kind==="employee"&&s.debtor) mean=T.halfGoes(abs(s.debtAmount,s.currency),s.debtor,s.creditor);
+          else if(s.debtor) mean=s.debtor+" "+T.owes+" "+s.creditor+"  "+abs(s.debtAmount,s.currency);
+          else mean=T.settledHere;
+          box.appendChild(el("div","sec-mean",mean));
+          detail.appendChild(box);
         });
-        box.appendChild(et);
-        var mean;
-        if(s.kind==="own") mean=T.ownWork(s.person);
-        else if(s.kind==="employee"&&s.debtor) mean=T.halfGoes(abs(s.debtAmount,s.currency),s.debtor,s.creditor);
-        else if(s.debtor) mean=s.debtor+" "+T.owes+" "+s.creditor+"  "+abs(s.debtAmount,s.currency);
-        else mean=T.settledHere;
-        box.appendChild(el("div","sec-mean",mean));
-        detail.appendChild(box);
-      });
-      card.appendChild(detail);
-      tgl.onclick=function(){
-        open[st.status]=!open[st.status];
-        detail.classList.toggle("on",open[st.status]);
-        tgl.textContent=open[st.status]?T.hide:T.details;
-      };
-
-      if (st.status!=="paid") {
-        var nextLabel = st.status==="pending"?T.st_stripe : st.status==="stripe"?T.st_bank : T.st_paid;
-        var btn=el("button","move"+(st.readyCount||st.status==="bank"?" ready":""),T.moveTo(nextLabel));
-        btn.onclick=function(){ move(st.status,T.confirmMove(st.count,nextLabel),btn); };
-        card.appendChild(btn);
+        card.appendChild(detail);
+        tgl.onclick=function(){
+          open[st.status]=!open[st.status];
+          detail.classList.toggle("on",open[st.status]);
+          tgl.textContent=open[st.status]?T.hide:T.details;
+        };
       }
+
+      // Each stage carries its own button to push it to the next one.
+      if (st.status!=="paid") {
+        var next = st.status==="pending" ? "stripe" : st.status==="stripe" ? "bank" : "paid";
+        var isSettle = st.status==="bank";
+        var btn=el("button","move"+((st.readyCount||isSettle)&&!empty?" ready":""),
+          isSettle ? T.weeklyBtn : T.moveTo(T["st_"+next]));
+        btn.disabled = empty;
+        btn.onclick=function(){
+          move(st.status,
+            isSettle ? T.confirmWeekly(st.count) : T.confirmMove(st.count,T["st_"+next]),
+            btn);
+        };
+        card.appendChild(btn);
+        if (isSettle && !empty) {
+          card.appendChild(el("div","st-meta",T.weeklyHint(D.anchor, D.other)));
+        }
+      }
+
       c.appendChild(card);
     });
   }
