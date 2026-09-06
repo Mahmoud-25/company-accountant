@@ -146,16 +146,33 @@
   }
 
   /* rows */
-  .row { display:flex; justify-content:space-between; gap:10px; padding:10px 0; }
+  .row { display:flex; justify-content:space-between; gap:10px; padding:10px 0;
+         align-items:flex-start; }
   .row + .row { border-top:1px solid var(--tg-theme-bg-color,#eef2f7); }
   .r-main { font-size:14px; font-weight:600; }
   .r-sub { font-size:12px; color:var(--tg-theme-hint-color,#64748b); margin-top:2px; }
-  .r-right { text-align:center; }
   .chip {
-    font-size:11px; padding:2px 9px; border-radius:999px; white-space:nowrap; display:inline-block;
+    font-size:11px; padding:2px 9px; border-radius:999px; white-space:nowrap;
+    display:inline-block; align-self:flex-start;
     background:var(--tg-theme-bg-color,#eef2f7); color:var(--tg-theme-hint-color,#64748b);
   }
   .chip.ready { background:#10b981; color:#fff; }
+
+  /* the shared data table - every tab uses this, date first */
+  .dt { width:100%; border-collapse:collapse; }
+  .dt th {
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--tg-theme-hint-color,#94a3b8); padding:5px 4px; white-space:nowrap;
+  }
+  .dt td {
+    padding:9px 4px; border-top:1px solid var(--tg-theme-bg-color,#eef2f7);
+    font-size:13px; vertical-align:top;
+  }
+  .dt tr:first-child td { border-top:none; }
+  .dt .date { white-space:nowrap; color:var(--tg-theme-hint-color,#64748b); font-size:12px; }
+  .dt .amt  { white-space:nowrap; font-weight:700; }
+  .dt .note { font-size:11px; color:var(--tg-theme-hint-color,#94a3b8); margin-top:2px; }
+  .dt .who  { font-weight:600; }
 
   table { width:100%; border-collapse:collapse; }
   th { font-size:11px; font-weight:600; padding:4px 0; color:var(--tg-theme-hint-color,#64748b); }
@@ -251,6 +268,9 @@
       weeklyNone:"لا شيء في البنك بعد",
       confirmWeekly:function(n){ return "تأكيد إتمام التسوية الأسبوعية لـ "+n+" عملية؟"; },
       spent:"صرف", difference:"الفرق", noSpend:"لا مصروفات",
+      cDate:"التاريخ", cWork:"العمل", cAmount:"المبلغ", cStage:"المرحلة",
+      cPaidBy:"دفع بواسطة", cCategory:"الفئة",
+      ownAcc:"حسابه", inAcc:function(a){ return "حساب "+a; },
       signNote:function(a){ return "سالب = مستحق لـ "+a+" · موجب = مستحق على "+a; },
       fPerson:"الشخص", fStage:"المرحلة", fMonth:"الشهر", fCurrency:"العملة",
       fPaidBy:"دفع بواسطة", fCategory:"الفئة", all:"الكل",
@@ -289,6 +309,9 @@
       weeklyNone:"nothing in the bank yet",
       confirmWeekly:function(n){ return "Mark "+n+" entries as settled?"; },
       spent:"spent", difference:"Difference", noSpend:"no spending",
+      cDate:"Date", cWork:"Work", cAmount:"Amount", cStage:"Stage",
+      cPaidBy:"Paid by", cCategory:"Category",
+      ownAcc:"own account", inAcc:function(a){ return a+"'s account"; },
       signNote:function(a){ return "negative = owed to "+a+" · positive = owed by "+a; },
       fPerson:"Person", fStage:"Stage", fMonth:"Month", fCurrency:"Currency",
       fPaidBy:"Paid by", fCategory:"Category", all:"All",
@@ -363,6 +386,20 @@
     if(t)h["X-Dashboard-Token"]=t;
     return h;
   }
+  /** Every list on every tab is this table, and it always leads with a date. */
+  function dataTable(headers){
+    var t=el("table","dt"), h=el("tr");
+    headers.forEach(function(x){ h.appendChild(el("th",null,x)); });
+    t.appendChild(h);
+    return t;
+  }
+  function cell(cls,node,extra){
+    var c=el("td",cls);
+    if(node) c.appendChild(typeof node==="string"?document.createTextNode(node):node);
+    if(extra) c.appendChild(el("div","note",extra));
+    return c;
+  }
+
   function sel(labelText,value,options,onChange){
     var wrap=el("label");
     wrap.appendChild(el("span","flabel",labelText));
@@ -470,7 +507,17 @@
           s.kind==="own" ? abs(s.net,s.currency) : signed(s.net,s.currency),
           "sec-net "+(s.kind==="own" ? "muted" : (s.net<0?"pos":"neg"))));
         box.appendChild(top);
-        box.appendChild(nm(s.entries.map(function(e){return sPlain(e.signed||e.amount);}).join("   "),"sec-nums"));
+        var et = dataTable([T.cDate, T.cAmount]);
+        s.entries.forEach(function(e){
+          var v = e.signed || e.amount;
+          var tr = el("tr");
+          tr.appendChild(cell("date", dt(e.occurred_on)));
+          tr.appendChild(cell(
+            "amt " + (s.kind==="own" ? "muted" : (v<0 ? "pos" : "neg")),
+            nm(s.kind==="own" ? abs(e.amount,s.currency) : sPlain(v))));
+          et.appendChild(tr);
+        });
+        box.appendChild(et);
         var mean;
         if(s.kind==="own") mean=T.ownWork(s.person);
         else if(s.kind==="employee"&&s.debtor) mean=T.halfGoes(abs(s.debtAmount,s.currency),s.debtor,s.creditor);
@@ -528,24 +575,22 @@
     if(!rows.length){ c.appendChild(el("div","card muted",T.noRows)); return; }
 
     var card=el("div","card");
+    var t=dataTable([T.cDate, T.cWork, T.cAmount, T.cStage]);
     rows.forEach(function(r){
-      var row=el("div","row"), left=el("div");
-      left.appendChild(nm(abs(r.amount,r.currency),"r-main"));
-      var who = r.earner===r.account ? T.ownAccount(r.earner) : T.onAccount(r.earner,r.account);
-      var bits=[who, dt(r.date)];
-      if(r.description)bits.push(r.description);
-      left.appendChild(el("div","r-sub",bits.join(" · ")));
-      row.appendChild(left);
+      var tr=el("tr");
+      tr.appendChild(cell("date", dt(r.date)));
+      tr.appendChild(cell("who", r.earner,
+        r.earner===r.account ? T.ownAcc : T.inAcc(r.account)));
+      tr.appendChild(cell("amt", nm(abs(r.amount,r.currency)), r.description||undefined));
 
-      var right=el("div","r-right");
       var ready = r.daysInStage!==null && r.daysInStage>=D.stageDays;
-      right.appendChild(el("span","chip"+(ready?" ready":""),T["st_"+r.status]));
-      if(r.daysInStage!==null){
-        right.appendChild(el("div","r-sub", r.daysInStage+" "+T.days));
-      }
-      row.appendChild(right);
-      card.appendChild(row);
+      var stg=el("td");
+      stg.appendChild(el("span","chip"+(ready?" ready":""),T["st_"+r.status]));
+      if(r.daysInStage!==null) stg.appendChild(el("div","note", r.daysInStage+" "+T.days));
+      tr.appendChild(stg);
+      t.appendChild(tr);
     });
+    card.appendChild(t);
     c.appendChild(card);
   }
 
@@ -619,19 +664,20 @@
 
     if(rows.length){
       var card=el("div","card");
+      var t=dataTable([T.cDate, T.cPaidBy, T.cCategory, T.cAmount]);
       rows.forEach(function(r){
-        var row=el("div","row"), left=el("div");
-        left.appendChild(nm(abs(r.amount,r.currency),"r-main"));
         var split = r.split==="founders_equal" ? T.splitEqual
           : r.split==="charged_to" ? T.splitTo+" "+r.chargeTo : T.splitNone;
-        var bits=[r.paidBy, dt(r.date), split];
-        if(r.category)bits.push(r.category);
-        left.appendChild(el("div","r-sub",bits.join(" · ")));
-        if(r.description)left.appendChild(el("div","r-sub",r.description));
-        row.appendChild(left);
-        row.appendChild(el("span","chip", r.kind==="payout"?T.payout:T.expense));
-        card.appendChild(row);
+        var tr=el("tr");
+        tr.appendChild(cell("date", dt(r.date)));
+        tr.appendChild(cell("who", r.paidBy, split));
+        tr.appendChild(cell(null,
+          r.category || (r.kind==="payout"?T.payout:T.expense),
+          r.description||undefined));
+        tr.appendChild(cell("amt", nm(abs(r.amount,r.currency))));
+        t.appendChild(tr);
       });
+      card.appendChild(t);
       c.appendChild(card);
     } else {
       c.appendChild(el("div","card muted",T.noRows));
