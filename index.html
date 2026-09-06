@@ -38,6 +38,47 @@
     background:var(--tg-theme-secondary-bg-color,#fff); padding:14px 16px;
     border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:10px;
   }
+
+  /* the four stage cards */
+  .kpi-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:12px; }
+  .kpi-card {
+    background:var(--tg-theme-secondary-bg-color,#fff); padding:12px; border-radius:10px;
+    box-shadow:0 1px 3px rgba(0,0,0,.08); position:relative; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .kpi-card::before { content:''; position:absolute; top:0; right:0; width:4px; height:100%; }
+  body[dir="rtl"] .kpi-card::before { right:auto; left:0; }
+  .kpi-card.blue::before   { background:#3b82f6; }
+  .kpi-card.purple::before { background:#8b5cf6; }
+  .kpi-card.green::before  { background:#10b981; }
+  .kpi-card.grey::before   { background:#94a3b8; }
+  .kpi-label { font-size:11px; font-weight:700; color:var(--tg-theme-hint-color,#64748b); }
+  .kpi-value { font-size:18px; font-weight:750; margin-top:4px; }
+  .kpi-sub { font-size:10px; color:var(--tg-theme-hint-color,#94a3b8); margin-top:3px; }
+  .kpi-btn {
+    margin-top:9px; width:100%; border:none; border-radius:8px; padding:9px;
+    font-size:13px; font-weight:700; cursor:pointer; background:#10b981; color:#fff;
+  }
+  .kpi-btn:disabled {
+    background:var(--tg-theme-bg-color,#eef2f7);
+    color:var(--tg-theme-hint-color,#94a3b8); cursor:default;
+  }
+
+  /* expenses: one half each, then the difference */
+  .split2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+  .half {
+    background:var(--tg-theme-secondary-bg-color,#fff); border-radius:12px;
+    padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  .half .n { font-size:13px; font-weight:700; }
+  .half .v { font-size:19px; font-weight:750; margin-top:3px; }
+  .half .s { font-size:11px; color:var(--tg-theme-hint-color,#94a3b8); margin-top:2px; }
+  .diff {
+    background:var(--tg-theme-secondary-bg-color,#fff); border-radius:12px;
+    padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:14px;
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    font-weight:700; font-size:14px;
+  }
   .settle {
     background:var(--tg-theme-button-color,#3390ec); color:var(--tg-theme-button-text-color,#fff);
     border-radius:14px; padding:15px 18px; margin-bottom:10px;
@@ -203,6 +244,13 @@
       moveTo:function(s){ return "➡️ نقل الكل إلى "+s; },
       confirmMove:function(n,s){ return "نقل "+n+" عملية إلى "+s+"؟"; },
       moved:function(n){ return "تم نقل "+n+" عملية"; }, nothingMoved:"لا يوجد ما يُنقل",
+      moving:"جاري النقل…",
+      weeklyTitle:"تسوية الأسبوع",
+      weeklyHint:function(a,b){ return "اضغط بعد إتمام التحويل بين "+a+" و "+b; },
+      weeklyBtn:"✅ تمت التسوية",
+      weeklyNone:"لا شيء في البنك بعد",
+      confirmWeekly:function(n){ return "تأكيد إتمام التسوية الأسبوعية لـ "+n+" عملية؟"; },
+      spent:"صرف", difference:"الفرق", noSpend:"لا مصروفات",
       signNote:function(a){ return "سالب = مستحق لـ "+a+" · موجب = مستحق على "+a; },
       fPerson:"الشخص", fStage:"المرحلة", fMonth:"الشهر", fCurrency:"العملة",
       fPaidBy:"دفع بواسطة", fCategory:"الفئة", all:"الكل",
@@ -234,6 +282,13 @@
       moveTo:function(s){ return "➡️ Move all to "+s; },
       confirmMove:function(n,s){ return "Move "+n+" entries to "+s+"?"; },
       moved:function(n){ return "Moved "+n+" entries"; }, nothingMoved:"Nothing to move",
+      moving:"Moving…",
+      weeklyTitle:"Weekly settle-up",
+      weeklyHint:function(a,b){ return "Tap once "+a+" and "+b+" have transferred"; },
+      weeklyBtn:"✅ Settled",
+      weeklyNone:"nothing in the bank yet",
+      confirmWeekly:function(n){ return "Mark "+n+" entries as settled?"; },
+      spent:"spent", difference:"Difference", noSpend:"no spending",
       signNote:function(a){ return "negative = owed to "+a+" · positive = owed by "+a; },
       fPerson:"Person", fStage:"Stage", fMonth:"Month", fCurrency:"Currency",
       fPaidBy:"Paid by", fCategory:"Category", all:"All",
@@ -256,6 +311,21 @@
   var tg = window.Telegram && window.Telegram.WebApp;
   if (tg) { try { tg.ready(); tg.expand(); } catch(e){} }
 
+  // telegram-web-app.js defines window.Telegram.WebApp even in a plain
+  // browser, but its dialogs never call back there - so a click on a
+  // confirm just vanished. Only trust it when Telegram actually signed us in.
+  var inTelegram = !!(tg && tg.initData && tg.initData.length);
+
+  function confirmThen(question, run) {
+    if (inTelegram && tg.showConfirm) {
+      try {
+        tg.showConfirm(question, function (ok) { if (ok) run(); });
+        return;
+      } catch (e) { /* fall through to the browser dialog */ }
+    }
+    if (window.confirm(question)) run();
+  }
+
   function $(id){ return document.getElementById(id); }
   function el(t,c,x){ var n=document.createElement(t); if(c)n.className=c;
     if(x!==undefined&&x!==null)n.textContent=String(x); return n; }
@@ -264,6 +334,7 @@
     var v=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
     return cur==="USD"?"$"+v:v+" EGP";
   }
+  function round2(n){ return Math.round(n*100)/100; }
   function money(n,cur){ return (n<0?"-":"")+abs(n,cur); }
   function signed(n,cur){ return (n<0?"-":"+")+abs(n,cur); }
   function sPlain(n){ return (n<0?"-":"+")+Math.abs(n).toLocaleString("en-US",{maximumFractionDigits:2}); }
@@ -307,6 +378,34 @@
 
   // =================================================================== home
   function renderHome(c) {
+    // --- where the money is right now, at a glance
+    var byStage = {};
+    D.stages.forEach(function(s){ byStage[s.status] = s; });
+
+    var grid = el("div","kpi-grid");
+    [["blue","pending"],["purple","stripe"],["green","bank"]].forEach(function(k){
+      var st = byStage[k[1]];
+      var card = el("div","kpi-card "+k[0]);
+      card.appendChild(el("div","kpi-label",T["st_"+k[1]]));
+      card.appendChild(nm(st?pair(st.totals):abs(0,"USD"),"kpi-value"));
+      card.appendChild(el("div","kpi-sub", st ? st.count+" "+T.entries : "—"));
+      grid.appendChild(card);
+    });
+
+    // --- the weekly settle-up: pressed once the two of them have transferred
+    var bank = byStage["bank"];
+    var bankCount = bank ? bank.count : 0;
+    var act = el("div","kpi-card grey");
+    act.appendChild(el("div","kpi-label",T.weeklyTitle));
+    act.appendChild(el("div","kpi-sub", bankCount
+      ? T.weeklyHint(D.anchor, D.other) : T.weeklyNone));
+    var wk = el("button","kpi-btn",T.weeklyBtn);
+    wk.disabled = !bankCount;
+    wk.onclick = function(){ move("bank", T.confirmWeekly(bankCount), wk); };
+    act.appendChild(wk);
+    grid.appendChild(act);
+    c.appendChild(grid);
+
     if (D.settlePlan.length) {
       D.settlePlan.forEach(function(s){
         var b=el("div","settle");
@@ -366,7 +465,10 @@
         var name=el("span","sec-name",s.person);
         if(s.kind==="employee")name.appendChild(el("span","badge",T.shared));
         top.appendChild(name);
-        top.appendChild(nm(signed(s.net,s.currency),"sec-net "+(s.net<0?"pos":"neg")));
+        // Own work is nobody's debt, so it should not be coloured like one.
+        top.appendChild(nm(
+          s.kind==="own" ? abs(s.net,s.currency) : signed(s.net,s.currency),
+          "sec-net "+(s.kind==="own" ? "muted" : (s.net<0?"pos":"neg"))));
         box.appendChild(top);
         box.appendChild(nm(s.entries.map(function(e){return sPlain(e.signed||e.amount);}).join("   "),"sec-nums"));
         var mean;
@@ -387,7 +489,7 @@
       if (st.status!=="paid") {
         var nextLabel = st.status==="pending"?T.st_stripe : st.status==="stripe"?T.st_bank : T.st_paid;
         var btn=el("button","move"+(st.readyCount||st.status==="bank"?" ready":""),T.moveTo(nextLabel));
-        btn.onclick=function(){ move(st.status,nextLabel,st.count,btn); };
+        btn.onclick=function(){ move(st.status,T.confirmMove(st.count,nextLabel),btn); };
         card.appendChild(btn);
       }
       c.appendChild(card);
@@ -449,6 +551,40 @@
 
   // =============================================================== expenses
   function renderExpense(c) {
+    // --- one half each, then who owes the difference
+    var pair2 = [D.anchor, D.other].filter(Boolean);
+    ["EGP","USD"].forEach(function(cur){
+      var rows = pair2.map(function(name){
+        return D.expenseSplit.filter(function(p){ return p.name===name; })[0]
+          || { name:name, paid:{USD:0,EGP:0}, share:{USD:0,EGP:0}, net:{USD:0,EGP:0} };
+      });
+      if (!rows.some(function(p){ return Math.abs(p.paid[cur])>0.005; })) return;
+
+      var split = el("div","split2");
+      rows.forEach(function(p){
+        var h = el("div","half");
+        h.appendChild(el("div","n", p.name));
+        h.appendChild(nm(abs(p.paid[cur],cur),"v"));
+        h.appendChild(el("div","s", T.spent));
+        split.appendChild(h);
+      });
+      c.appendChild(split);
+
+      // Whoever paid more than their share is owed the gap back.
+      var gap = round2((rows[0].paid[cur] - rows[1].paid[cur]) / 2);
+      var d = el("div","diff");
+      d.appendChild(el("span",null,T.difference));
+      if (Math.abs(gap) < 0.005) {
+        d.appendChild(el("span","muted",T.allSquare));
+      } else {
+        var debtor  = gap > 0 ? rows[1].name : rows[0].name;
+        var creditor= gap > 0 ? rows[0].name : rows[1].name;
+        d.appendChild(el("span",null,
+          debtor+" "+T.owes+" "+creditor+"  "+abs(gap,cur)));
+      }
+      c.appendChild(d);
+    });
+
     var months = [...new Set(D.expenses.map(function(r){return monthOf(r.date);}))].sort().reverse();
     var payers = [...new Set(D.expenses.map(function(r){return r.paidBy;}))].sort();
     var f=el("div","filters");
@@ -555,11 +691,13 @@
     c.appendChild(foot);
   }
 
-  function move(from,label,count,btn){
+  function move(from,question,btn){
     if(busy)return;
-    var ask=T.confirmMove(count,label);
-    function go(){
-      busy=true; btn.disabled=true;
+    confirmThen(question, function(){
+      busy=true;
+      btn.disabled=true;
+      var was=btn.textContent;
+      btn.textContent=T.moving;
       fetch(BASE+"/advance",{
         method:"POST",
         headers:Object.assign({"Content-Type":"application/json"},headers()),
@@ -567,13 +705,17 @@
       }).then(function(r){ return r.json().then(function(j){return {ok:r.ok,body:j};}); })
         .then(function(res){
           busy=false;
-          if(!res.ok){ btn.disabled=false; return fail(res.body.error||T.errGeneric); }
+          if(!res.ok){
+            // a failed move should not blank the whole page
+            btn.disabled=false; btn.textContent=was;
+            return toast(res.body.error||T.errGeneric);
+          }
           toast(res.body.moved?T.moved(res.body.moved):T.nothingMoved);
           D=res.body; draw();
-        }).catch(function(){ busy=false; btn.disabled=false; fail(T.errNet); });
-    }
-    if(tg&&tg.showConfirm) tg.showConfirm(ask,function(ok){ if(ok)go(); });
-    else if(window.confirm(ask)) go();
+        }).catch(function(){
+          busy=false; btn.disabled=false; btn.textContent=was; toast(T.errNet);
+        });
+    });
   }
 
   function fail(m){ $("errorText").textContent=m; showOnly("error"); }
